@@ -1,5 +1,3 @@
-// src/screens/HomeScreen.js
-
 import React, { useContext, useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
@@ -124,6 +122,16 @@ export default function HomeScreen({ navigation }) {
               tintColor="#22C55E"
             />
           }
+
+          // 🔥 BOTÓN AGREGADO AQUÍ
+          ListFooterComponent={
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => navigation.getParent()?.navigate('AgregarMaceta')}
+            >
+              <Text style={styles.addButtonText}>+ Agregar maceta</Text>
+            </TouchableOpacity>
+          }
         />
       )}
 
@@ -209,5 +217,20 @@ const styles = StyleSheet.create({
 
   statusText: {
     fontWeight: 'bold',
+  },
+
+  // 🔥 ESTILOS NUEVOS (botón)
+  addButton: {
+    backgroundColor: '#22C55E',
+    padding: 15,
+    borderRadius: 20,
+    alignItems: 'center',
+    marginTop: 10,
+  },
+
+  addButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 });

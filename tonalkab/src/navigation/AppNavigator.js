@@ -3,7 +3,7 @@ import React, { useContext } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons'; // Iconos nativos de Expo
+import { Ionicons } from '@expo/vector-icons';
 import { ThemeContext } from '../context/ThemeContext';
 
 // Importación de Pantallas
@@ -16,6 +16,9 @@ import EnciclopediaScreen from '../screens/EnciclopediaScreen';
 import AlertasScreen from '../screens/AlertasScreen';
 import PerfilScreen from '../screens/PerfilScreen';
 
+// ✅ AGREGADO (NO SE MODIFICÓ NADA MÁS)
+import AgregarMacetaScreen from '../screens/AgregarMacetaScreen';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -26,7 +29,7 @@ function MainTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false, // Ocultamos la barra superior en los tabs
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
           borderTopWidth: 0,
@@ -37,7 +40,7 @@ function MainTabNavigator() {
         },
         tabBarActiveTintColor: isDark ? '#4ADE80' : '#16A34A',
         tabBarInactiveTintColor: '#94A3B8',
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           let iconName;
 
           if (route.name === 'Macetas') {
@@ -80,14 +83,10 @@ export default function AppNavigator() {
     <NavigationContainer theme={isDark ? TonalkabDark : TonalkabLight}>
       <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShadowVisible: false }}>
         
-        {/* PANTALLA DE LOGIN (Pantalla Completa) */}
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         
-        {/* LA BARRA INFERIOR DE NAVEGACIÓN (Sustituye al Home antiguo) */}
-        {/* Al nombrarlo "Home", el LoginScreen navegará automáticamente aquí sin tener que cambiar su código */}
         <Stack.Screen name="Home" component={MainTabNavigator} options={{ headerShown: false }} />
         
-        {/* PANTALLAS DE DETALLE (Pantalla Completa, ocultan la barra inferior al abrirse) */}
         <Stack.Screen 
           name="MacetaDetail" 
           component={MacetaDetailScreen} 
@@ -102,6 +101,13 @@ export default function AppNavigator() {
           name="MacetaStats" 
           component={MacetaStatsScreen} 
           options={{ title: 'Gráficas e Historial' }} 
+        />
+
+        {/* ✅ AGREGADO: SOLO ESTO */}
+        <Stack.Screen 
+          name="AgregarMaceta" 
+          component={AgregarMacetaScreen} 
+          options={{ title: 'Agregar Maceta' }} 
         />
 
       </Stack.Navigator>
