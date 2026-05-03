@@ -1,14 +1,16 @@
 // src/screens/MacetaConfigScreen.js
-import React, { useContext, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ScrollView, ActivityIndicator } from 'react-native';
-import { useTheme } from '@react-navigation/native';
-import { ThemeContext } from '../context/ThemeContext';
+import React, { useState, useEffect } from 'react';
+import { 
+  View, Text, StyleSheet, TouchableOpacity, TextInput, 
+  Alert, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform 
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
 import apiClient from '../api/client';
 
 export default function MacetaConfigScreen({ route, navigation }) {
   const { id_maceta, nombre_maceta } = route.params;
-  const { colors } = useTheme();
-  const { isDark } = useContext(ThemeContext);
 
   const [activeTab, setActiveTab] = useState('planta'); // 'planta' o 'manual'
   const [isLoading, setIsLoading] = useState(false);
@@ -22,11 +24,9 @@ export default function MacetaConfigScreen({ route, navigation }) {
   const [humMax, setHumMax] = useState('');
   const [dias, setDias] = useState('');
 
-  // Cargar el catálogo al iniciar
   useEffect(() => {
     const fetchCatalogo = async () => {
       try {
-        // AQUÍ ESTÁ LA CORRECCIÓN DE LA RUTA (Error 404 solucionado)
         const res = await apiClient.get('/catalogos/plantas');
         setCatalogo(res.data);
       } catch (error) {
@@ -36,13 +36,12 @@ export default function MacetaConfigScreen({ route, navigation }) {
     fetchCatalogo();
   }, []);
 
-  // 1. Enviar Cambio de Planta
   const handleCambiarPlanta = async () => {
-    if (!selectedPlanta) return Alert.alert("Error", "Selecciona una planta del catálogo");
+    if (!selectedPlanta) return Alert.alert("Falta selección", "Elige una especie del catálogo biológico.");
     setIsLoading(true);
     try {
       await apiClient.patch(`/macetas/${id_maceta}/planta`, { id_tipo_planta: selectedPlanta });
-      Alert.alert("¡Éxito!", "La maceta ha sido actualizada. La configuración natural ha sido restaurada.");
+      Alert.alert("¡Especie Actualizada! 🌱", "Se han descargado los algoritmos de riego ideales para tu planta.");
       navigation.goBack();
     } catch (error) {
       Alert.alert("Error", error.response?.data?.detail || "No se pudo cambiar la planta");
@@ -51,9 +50,8 @@ export default function MacetaConfigScreen({ route, navigation }) {
     }
   };
 
-  // 2. Enviar Configuración Manual (Sobreescribe la IA)
   const handleGuardarManual = async () => {
-    if (!humMin || !humMax || !dias) return Alert.alert("Error", "Llena todos los campos");
+    if (!humMin || !humMax || !dias) return Alert.alert("Campos incompletos", "Por favor, define todos los parámetros del hardware.");
     setIsLoading(true);
     try {
       await apiClient.post(`/macetas/${id_maceta}/configuracion`, {
@@ -62,7 +60,7 @@ export default function MacetaConfigScreen({ route, navigation }) {
         tiempo_min_entre_riegos_dias: parseInt(dias),
         modo_operacion: "manual"
       });
-      Alert.alert("¡Éxito!", "Reglas manuales establecidas. El hardware las descargará en breve.");
+      Alert.alert("¡Hardware Sobreescrito! ⚙️", "Las nuevas directivas se están enviando al dispositivo.");
       navigation.goBack();
     } catch (error) {
       Alert.alert("Error", error.response?.data?.detail || "No se pudo guardar la configuración");
@@ -72,97 +70,213 @@ export default function MacetaConfigScreen({ route, navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={[styles.headerTitle, { color: colors.text }]}>{nombre_maceta}</Text>
-      
-      {/* Pestañas de Navegación */}
-      <View style={styles.tabContainer}>
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+      style={styles.mainContainer}
+    >
+      <StatusBar style="dark" />
+      <LinearGradient colors={["#FFFFFF", "#F8FAFC", "#F1F5F9"]} style={StyleSheet.absoluteFill} />
+
+      {/* CABECERA */}
+      <View style={styles.header}>
+        <View style={styles.iconWrapper}>
+          <Ionicons name="settings" size={28} color="#22C55E" />
+        </View>
+        <Text style={styles.mainTitle}>Ajustes del Sistema</Text>
+        <Text style={styles.subtitle}>{nombre_maceta}</Text>
+      </View>
+
+      {/* SELECTOR DE MODO (SEGMENTED CONTROL) */}
+      <View style={styles.segmentContainer}>
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'planta' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+          style={[styles.segmentBtn, activeTab === 'planta' && styles.segmentActive]}
           onPress={() => setActiveTab('planta')}
         >
-          <Text style={{ color: activeTab === 'planta' ? colors.primary : '#94A3B8', fontWeight: 'bold' }}>Catálogo Botánico</Text>
+          <Ionicons name="leaf" size={16} color={activeTab === 'planta' ? '#FFFFFF' : '#64748B'} style={{ marginRight: 6 }}/>
+          <Text style={[styles.segmentText, activeTab === 'planta' && styles.segmentTextActive]}>Biología IA</Text>
         </TouchableOpacity>
+        
         <TouchableOpacity 
-          style={[styles.tab, activeTab === 'manual' && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+          style={[styles.segmentBtn, activeTab === 'manual' && styles.segmentActive]}
           onPress={() => setActiveTab('manual')}
         >
-          <Text style={{ color: activeTab === 'manual' ? colors.primary : '#94A3B8', fontWeight: 'bold' }}>Control Manual</Text>
+          <Ionicons name="hardware-chip" size={16} color={activeTab === 'manual' ? '#FFFFFF' : '#64748B'} style={{ marginRight: 6 }}/>
+          <Text style={[styles.segmentText, activeTab === 'manual' && styles.segmentTextActive]}>Forzar Hardware</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* PESTAÑA: CATÁLOGO */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        
+        {/* PESTAÑA: BIOLOGÍA IA (Catálogo) */}
         {activeTab === 'planta' && (
           <View style={styles.section}>
-            <Text style={[styles.description, { color: colors.text }]}>
-              Selecciona la especie que acabas de sembrar. El sistema aplicará los umbrales biológicos ideales automáticamente.
-            </Text>
+            <View style={styles.infoBox}>
+              <Ionicons name="information-circle" size={24} color="#3B82F6" />
+              <Text style={styles.infoText}>
+                Selecciona la especie. El sistema Tonalkab descargará los umbrales ideales y automatizará el cuidado basado en su biología.
+              </Text>
+            </View>
             
-            {catalogo.map((planta) => (
-              <TouchableOpacity 
-                key={planta.id_tipo_planta}
-                style={[
-                  styles.plantaCard, 
-                  { backgroundColor: 'rgba(30, 41, 59, 0.7)', borderColor: selectedPlanta === planta.id_tipo_planta ? colors.primary : 'rgba(255,255,255,0.1)' }
-                ]}
-                onPress={() => setSelectedPlanta(planta.id_tipo_planta)}
-              >
-                <Text style={[styles.plantaName, { color: colors.text }]}>🌿 {planta.nombre_planta}</Text>
-                <Text style={{ color: '#94A3B8' }}>Humedad ideal: {planta.humedad_suelo_min}% - {planta.humedad_suelo_max}%</Text>
-              </TouchableOpacity>
-            ))}
+            {catalogo.map((planta) => {
+              const isSelected = selectedPlanta === planta.id_tipo_planta;
+              return (
+                <TouchableOpacity 
+                  key={planta.id_tipo_planta}
+                  style={[styles.plantaCard, isSelected && styles.plantaCardSelected]}
+                  onPress={() => setSelectedPlanta(planta.id_tipo_planta)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.plantaHeader}>
+                    <Text style={[styles.plantaName, isSelected && { color: '#16A34A' }]}>
+                      🌿 {planta.nombre_planta}
+                    </Text>
+                    {isSelected && <Ionicons name="checkmark-circle" size={24} color="#22C55E" />}
+                  </View>
+                  
+                  <View style={styles.plantaStatsRow}>
+                    <View style={styles.plantaStat}>
+                      <Ionicons name="water-outline" size={14} color="#64748B" />
+                      <Text style={styles.plantaStatText}>Min: {planta.humedad_suelo_min}%</Text>
+                    </View>
+                    <View style={styles.plantaStat}>
+                      <Ionicons name="water" size={14} color="#3B82F6" />
+                      <Text style={styles.plantaStatText}>Max: {planta.humedad_suelo_max}%</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              )
+            })}
 
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary }]} onPress={handleCambiarPlanta} disabled={isLoading}>
-              {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Asignar Planta</Text>}
+            <TouchableOpacity style={styles.actionBtn} onPress={handleCambiarPlanta} disabled={isLoading}>
+              {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Aplicar Perfil Biológico</Text>}
             </TouchableOpacity>
           </View>
         )}
 
-        {/* PESTAÑA: MANUAL */}
+        {/* PESTAÑA: MANUAL (Sobreescribir Hardware) */}
         {activeTab === 'manual' && (
           <View style={styles.section}>
-            <Text style={[styles.description, { color: colors.text }]}>
-              Forza los umbrales operativos del hardware (Edge Computing). Al guardar, sobreescribirás la biología por defecto de la planta.
-            </Text>
-
-            <View style={[styles.inputGroup, { backgroundColor: 'rgba(30, 41, 59, 0.7)' }]}>
-              <Text style={{ color: colors.text, marginBottom: 5 }}>Humedad Mínima Crítica (%)</Text>
-              <TextInput style={styles.input} keyboardType="numeric" placeholder="Ej. 30" placeholderTextColor="#475569" value={humMin} onChangeText={setHumMin} />
+            <View style={[styles.infoBox, { backgroundColor: '#FEF2F2', borderColor: '#FECACA' }]}>
+              <Ionicons name="warning" size={24} color="#EF4444" />
+              <Text style={[styles.infoText, { color: '#B91C1C' }]}>
+                ¡Peligro! Al guardar estas reglas desactivarás la Inteligencia Artificial. La maceta obedecerá estrictamente a estos números.
+              </Text>
             </View>
 
-            <View style={[styles.inputGroup, { backgroundColor: 'rgba(30, 41, 59, 0.7)' }]}>
-              <Text style={{ color: colors.text, marginBottom: 5 }}>Humedad Máxima Objetivo (%)</Text>
-              <TextInput style={styles.input} keyboardType="numeric" placeholder="Ej. 70" placeholderTextColor="#475569" value={humMax} onChangeText={setHumMax} />
+            {/* Panel de Inputs */}
+            <View style={styles.inputCard}>
+              <View style={styles.inputHeader}>
+                <Ionicons name="arrow-down-circle" size={20} color="#F59E0B" />
+                <Text style={styles.inputTitle}>Humedad Mínima Crítica</Text>
+              </View>
+              <View style={styles.inputRow}>
+                <TextInput 
+                  style={styles.numericInput} 
+                  keyboardType="numeric" 
+                  placeholder="00" 
+                  placeholderTextColor="#CBD5E1" 
+                  value={humMin} 
+                  onChangeText={setHumMin} 
+                  maxLength={3}
+                />
+                <Text style={styles.unitText}>%</Text>
+              </View>
+              <Text style={styles.inputHelper}>La bomba se activará al bajar de este nivel.</Text>
             </View>
 
-            <View style={[styles.inputGroup, { backgroundColor: 'rgba(30, 41, 59, 0.7)' }]}>
-              <Text style={{ color: colors.text, marginBottom: 5 }}>Días de espera entre riegos</Text>
-              <TextInput style={styles.input} keyboardType="numeric" placeholder="Ej. 3" placeholderTextColor="#475569" value={dias} onChangeText={setDias} />
+            <View style={styles.inputCard}>
+              <View style={styles.inputHeader}>
+                <Ionicons name="arrow-up-circle" size={20} color="#3B82F6" />
+                <Text style={styles.inputTitle}>Humedad Máxima Objetivo</Text>
+              </View>
+              <View style={styles.inputRow}>
+                <TextInput 
+                  style={styles.numericInput} 
+                  keyboardType="numeric" 
+                  placeholder="00" 
+                  placeholderTextColor="#CBD5E1" 
+                  value={humMax} 
+                  onChangeText={setHumMax} 
+                  maxLength={3}
+                />
+                <Text style={styles.unitText}>%</Text>
+              </View>
+              <Text style={styles.inputHelper}>La bomba se detendrá al alcanzar este nivel.</Text>
             </View>
 
-            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary }]} onPress={handleGuardarManual} disabled={isLoading}>
-              {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Sobreescribir Hardware</Text>}
+            <View style={styles.inputCard}>
+              <View style={styles.inputHeader}>
+                <Ionicons name="time" size={20} color="#8B5CF6" />
+                <Text style={styles.inputTitle}>Días de absorción (Espera)</Text>
+              </View>
+              <View style={styles.inputRow}>
+                <TextInput 
+                  style={styles.numericInput} 
+                  keyboardType="numeric" 
+                  placeholder="0" 
+                  placeholderTextColor="#CBD5E1" 
+                  value={dias} 
+                  onChangeText={setDias} 
+                  maxLength={2}
+                />
+                <Text style={styles.unitText}>Días</Text>
+              </View>
+              <Text style={styles.inputHelper}>Evita ahogar la planta forzando pausas entre riegos.</Text>
+            </View>
+
+            <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#EF4444', shadowColor: '#EF4444' }]} onPress={handleGuardarManual} disabled={isLoading}>
+              {isLoading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Sobreescribir Dispositivo</Text>}
             </TouchableOpacity>
           </View>
         )}
-        <View style={{ height: 40 }} />
+        
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  tabContainer: { flexDirection: 'row', marginBottom: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.1)' },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center' },
+  mainContainer: { flex: 1 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 50 },
+  
+  // CABECERA
+  header: { alignItems: 'center', marginTop: 30, marginBottom: 20 },
+  iconWrapper: { width: 60, height: 60, borderRadius: 20, backgroundColor: '#DCFCE7', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
+  mainTitle: { fontSize: 26, fontWeight: '900', color: '#0F172A', letterSpacing: -0.5 },
+  subtitle: { fontSize: 16, fontWeight: '600', color: '#64748B', marginTop: 4 },
+
+  // SEGMENTED CONTROL
+  segmentContainer: { flexDirection: 'row', backgroundColor: '#E2E8F0', marginHorizontal: 20, padding: 4, borderRadius: 16, marginBottom: 25 },
+  segmentBtn: { flex: 1, flexDirection: 'row', paddingVertical: 12, justifyContent: 'center', alignItems: 'center', borderRadius: 12 },
+  segmentActive: { backgroundColor: '#22C55E', shadowColor: '#22C55E', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8, elevation: 4 },
+  segmentText: { fontSize: 14, fontWeight: '700', color: '#64748B' },
+  segmentTextActive: { color: '#FFFFFF' },
+
   section: { flex: 1 },
-  description: { fontSize: 14, marginBottom: 20, opacity: 0.8, lineHeight: 20 },
-  plantaCard: { padding: 15, borderRadius: 15, borderWidth: 2, marginBottom: 15 },
-  plantaName: { fontSize: 18, fontWeight: 'bold', marginBottom: 5 },
-  inputGroup: { padding: 15, borderRadius: 15, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', marginBottom: 15 },
-  input: { fontSize: 18, color: '#F8FAFC', borderBottomWidth: 1, borderBottomColor: '#334155', paddingVertical: 5 },
-  actionBtn: { padding: 15, borderRadius: 15, alignItems: 'center', marginTop: 10 },
-  btnText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
+  
+  // INFO BOX
+  infoBox: { flexDirection: 'row', backgroundColor: '#EFF6FF', padding: 15, borderRadius: 16, marginBottom: 20, borderWidth: 1, borderColor: '#DBEAFE', alignItems: 'center' },
+  infoText: { flex: 1, fontSize: 13, lineHeight: 20, color: '#1E3A8A', fontWeight: '500', marginLeft: 10 },
+
+  // TARJETAS DE CATÁLOGO
+  plantaCard: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 20, marginBottom: 15, borderWidth: 2, borderColor: '#F1F5F9', shadowColor: '#0F172A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 },
+  plantaCardSelected: { borderColor: '#4ADE80', backgroundColor: '#F0FDF4' },
+  plantaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  plantaName: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+  plantaStatsRow: { flexDirection: 'row', gap: 15 },
+  plantaStat: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8FAFC', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 },
+  plantaStatText: { fontSize: 12, fontWeight: '600', color: '#64748B', marginLeft: 5 },
+
+  // TARJETAS DE INPUT MANUAL
+  inputCard: { backgroundColor: '#FFFFFF', padding: 20, borderRadius: 20, marginBottom: 15, borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#0F172A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 2 },
+  inputHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
+  inputTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A', marginLeft: 8 },
+  inputRow: { flexDirection: 'row', alignItems: 'baseline', borderBottomWidth: 2, borderBottomColor: '#F1F5F9', paddingBottom: 5 },
+  numericInput: { fontSize: 36, fontWeight: '900', color: '#0F172A', minWidth: 70, padding: 0 },
+  unitText: { fontSize: 20, fontWeight: '700', color: '#94A3B8', marginLeft: 5 },
+  inputHelper: { fontSize: 12, color: '#94A3B8', marginTop: 10, fontWeight: '500' },
+
+  // BOTONES DE ACCIÓN
+  actionBtn: { backgroundColor: '#22C55E', paddingVertical: 18, borderRadius: 16, alignItems: 'center', marginTop: 10, shadowColor: '#22C55E', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12, elevation: 5 },
+  btnText: { color: 'white', fontWeight: 'bold', fontSize: 16, letterSpacing: 0.5 }
 });
