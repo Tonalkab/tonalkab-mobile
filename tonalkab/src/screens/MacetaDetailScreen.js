@@ -1,18 +1,21 @@
 // src/screens/MacetaDetailScreen.js
+
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
   ScrollView, TouchableOpacity, Image, Dimensions
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import apiClient from '../api/client';
 
 const { width } = Dimensions.get('window');
 
 export default function MacetaDetailScreen({ route, navigation }) {
-  const { id_maceta, nombre_maceta, skin_actual_id } = route.params;
-
+  // AQUÍ RECIBIMOS LA URL DE LA SKIN (skin_url) DESDE EL HOME
+  const { id_maceta, nombre_maceta, skin_actual_id, skin_url } = route.params;
+  
   const [lectura, setLectura] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const baseURL = apiClient.defaults.baseURL || 'https://api.tonalkab.com';
@@ -23,7 +26,7 @@ export default function MacetaDetailScreen({ route, navigation }) {
         const response = await apiClient.get(`/macetas/${id_maceta}/lecturas/actual`);
         setLectura(response.data);
       } catch (error) {
-        console.log("Error en detalle:", error);
+        console.error("Error en detalle:", error);
       } finally {
         setIsLoading(false);
       }
@@ -31,14 +34,14 @@ export default function MacetaDetailScreen({ route, navigation }) {
     fetchLecturaActual();
   }, [id_maceta]);
 
-  const SensorPill = ({ icon, label, value, unit, color }) => (
-    <View style={styles.sensorPill}>
+  const StatBox = ({ icon, label, value, unit, color }) => (
+    <View style={styles.statCard}>
       <View style={[styles.iconCircle, { backgroundColor: color + '20' }]}>
-        <Text style={styles.pillIcon}>{icon}</Text>
+        <Ionicons name={icon} size={20} color={color} />
       </View>
       <View>
-        <Text style={styles.pillLabel}>{label}</Text>
-        <Text style={styles.pillValue}>{value}{unit}</Text>
+        <Text style={styles.statValue}>{value}{unit}</Text>
+        <Text style={styles.statLabel}>{label}</Text>
       </View>
     </View>
   );
@@ -52,138 +55,199 @@ export default function MacetaDetailScreen({ route, navigation }) {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.mainContainer}>
       <StatusBar style="dark" />
-      <LinearGradient colors={["#FFFFFF", "#F0FDF4"]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={["#FFFFFF", "#F0FDF4", "#DCFCE7"]} style={StyleSheet.absoluteFill} />
 
-      {/* 🌿 CABECERA DINÁMICA: Muestra la Skin seleccionada */}
-      <View style={styles.heroSection}>
-        <View style={styles.skinCircle}>
-          {lectura?.skin_activa?.imagen_url ? (
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        
+        {/* --- SECCIÓN HÉROE (LA PLANTA) --- */}
+        <View style={styles.heroSection}>
+          <View style={styles.pedestalGlow} />
+          
+          {/* AQUÍ USAMOS LA URL QUE PASAMOS POR PARÁMETROS */}
+          {skin_url ? (
             <Image 
-              source={{ uri: `${baseURL}${lectura.skin_activa.imagen_url}` }} 
-              style={styles.skinImage}
+              source={{ uri: `${baseURL}${skin_url}` }} 
+              style={styles.mainSkin} 
               resizeMode="contain"
             />
           ) : (
-            <Text style={styles.emojiLarge}>🌱</Text>
+            <Text style={styles.placeholderEmoji}>🌿</Text>
           )}
+          
+          <View style={styles.badgeHumedad}>
+            <Ionicons name="water" size={16} color="#3B82F6" />
+            <Text style={styles.badgeText}>{lectura?.humedad_suelo || 0}% Hidratación</Text>
+          </View>
         </View>
-        <Text style={styles.mainTitle}>{nombre_maceta}</Text>
-        <Text style={styles.idText}>Dispositivo Tonalkab #{id_maceta}</Text>
-      </View>
 
-      {/* 📊 PANEL DE ESTADO RÁPIDO */}
-      <View style={styles.statsContainer}>
-        <Text style={styles.sectionTitle}>Estado Vital</Text>
-        <View style={styles.grid}>
-          <SensorPill icon="💧" label="Humedad" value={lectura?.humedad_suelo || 0} unit="%" color="#3B82F6" />
-          <SensorPill icon="🌡️" label="Temp" value={lectura?.temperatura || 0} unit="°C" color="#EF4444" />
-          <SensorPill icon="☀️" label="Luz UV" value={lectura?.nivel_luz || 0} unit="" color="#F59E0B" />
-          <SensorPill icon="🔋" label="Energía" value={lectura?.voltaje_bateria || 0} unit="V" color="#10B981" />
+        {/* --- PANEL DE INFORMACIÓN --- */}
+        <View style={styles.infoPanel}>
+          <Text style={styles.sectionTitle}>Estado del Entorno</Text>
+          
+          <View style={styles.statsGrid}>
+            <StatBox icon="thermometer" label="Temperatura" value={lectura?.temperatura || 0} unit="°C" color="#F59E0B" />
+            <StatBox icon="sunny" label="Nivel Luz" value={lectura?.nivel_luz || 0} unit=" uv" color="#EAB308" />
+            <StatBox icon="cloud" label="Hum. Aire" value={lectura?.humedad_ambiental || 0} unit="%" color="#64748B" />
+            <StatBox icon="flash" label="Batería" value={lectura?.voltaje_bateria || 0} unit="V" color="#22C55E" />
+          </View>
+
+          {/* --- TANQUE DE AGUA --- */}
+          <View style={styles.waterTankContainer}>
+            <View style={styles.tankHeader}>
+              <Text style={styles.tankTitle}>Reserva de Agua</Text>
+              <Text style={styles.tankPercent}>{lectura?.nivel_agua || 0}%</Text>
+            </View>
+            <View style={styles.tankTrack}>
+              <LinearGradient 
+                colors={["#60A5FA", "#3B82F6"]} 
+                start={{x:0, y:0}} end={{x:1, y:0}}
+                style={[styles.tankFill, { width: `${lectura?.nivel_agua || 0}%` }]} 
+              />
+            </View>
+            <Text style={styles.tankFooter}>Aproximadamente {((lectura?.nivel_agua || 0) * 0.5 / 100).toFixed(1)}L disponibles</Text>
+          </View>
+
+          {/* --- HUB DE ACCIONES --- */}
+          <View style={styles.actionHub}>
+             <TouchableOpacity 
+              style={[styles.actionBtn, { backgroundColor: '#3B82F6' }]}
+              onPress={() => navigation.navigate('MacetaStats', { id_maceta, nombre_maceta })}
+            >
+              <Ionicons name="bar-chart" size={24} color="#FFF" />
+              <Text style={styles.actionBtnText}>Reportes</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.actionBtn, { backgroundColor: '#22C55E' }]}
+              onPress={() => navigation.navigate('MacetaConfig', { id_maceta, nombre_maceta })}
+            >
+              <Ionicons name="options" size={24} color="#FFF" />
+              <Text style={styles.actionBtnText}>Ajustes</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.actionBtn, { backgroundColor: '#8B5CF6' }]}
+              onPress={() => navigation.navigate('MacetaVestidor', { id_maceta, nombre_maceta, skin_actual_id })}
+            >
+              <Ionicons name="shirt" size={24} color="#FFF" />
+              <Text style={styles.actionBtnText}>Skins</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-
-      {/* 💧 NIVEL DE AGUA (Depósito) */}
-      <View style={styles.waterCard}>
-        <View style={styles.waterInfo}>
-          <Text style={styles.waterTitle}>Depósito de Agua</Text>
-          <Text style={styles.waterPercent}>{lectura?.nivel_agua || 0}%</Text>
-        </View>
-        <View style={styles.progressContainer}>
-          <View style={[styles.progressBar, { width: `${lectura?.nivel_agua || 0}%` }]} />
-        </View>
-        <Text style={styles.waterHint}>
-          {lectura?.nivel_agua < 20 ? "⚠️ ¡Rellena pronto!" : "Nivel óptimo para 3 días"}
-        </Text>
-      </View>
-
-      {/* 🛠️ ACCIONES */}
-      <View style={styles.actionsGrid}>
-        <TouchableOpacity 
-          style={[styles.actionBtn, { backgroundColor: '#3B82F6' }]}
-          onPress={() => navigation.navigate('MacetaStats', { id_maceta, nombre_maceta })}
-        >
-          <Text style={styles.actionBtnText}>Historial 📈</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.actionBtn, { backgroundColor: '#22C55E' }]}
-          onPress={() => navigation.navigate('MacetaConfig', { id_maceta, nombre_maceta })}
-        >
-          <Text style={styles.actionBtnText}>Ajustes ⚙️</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={[styles.actionBtn, { backgroundColor: '#8B5CF6', width: '100%' }]}
-          onPress={() => navigation.navigate('MacetaVestidor', { 
-            id_maceta, 
-            nombre_maceta, 
-            skin_actual_id: lectura?.skin_activa?.id || 1 
-          })}
-        >
-          <Text style={styles.actionBtnText}>Cambiar Skin 👕</Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={{ height: 50 }} />
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFFFFF' },
-  
-  heroSection: { alignItems: 'center', paddingTop: 30, marginBottom: 30 },
-  skinCircle: { 
-    width: 200, 
-    height: 200, 
-    borderRadius: 100, 
-    backgroundColor: '#FFFFFF', 
-    justifyContent: 'center', 
+  mainContainer: { flex: 1 },
+  scrollContent: { paddingBottom: 40 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+
+  heroSection: {
+    height: 320,
+    justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 20
+  },
+  pedestalGlow: {
+    position: 'absolute',
+    width: 200,
+    height: 60,
+    backgroundColor: '#22C55E20',
+    borderRadius: 100,
+    bottom: 40,
+    transform: [{ scaleX: 1.5 }],
+    filter: 'blur(20px)'
+  },
+  mainSkin: { 
+    width: 260, 
+    height: 260,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: 15 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  placeholderEmoji: { fontSize: 100 },
+  badgeHumedad: {
+    position: 'absolute',
+    bottom: 20,
+    backgroundColor: '#FFFFFF',
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5
+  },
+  badgeText: { marginLeft: 6, fontWeight: '700', color: '#1E293B', fontSize: 13 },
+
+  infoPanel: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 35,
+    borderTopRightRadius: 35,
+    padding: 25,
+    marginTop: -10,
+    flex: 1,
+    minHeight: 500,
+    shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 20,
-    elevation: 5,
-    marginBottom: 20
+    elevation: 10
   },
-  skinImage: { width: 160, height: 160 },
-  emojiLarge: { fontSize: 80 },
-  mainTitle: { fontSize: 28, fontWeight: '900', color: '#0F172A' },
-  idText: { fontSize: 13, color: '#94A3B8', fontWeight: '600', marginTop: 5 },
-
-  statsContainer: { paddingHorizontal: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A', marginBottom: 15 },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A', marginBottom: 20 },
   
-  sensorPill: { 
-    width: '48%', 
-    backgroundColor: '#FFFFFF', 
-    padding: 15, 
-    borderRadius: 20, 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  statCard: {
+    width: '48%',
+    backgroundColor: '#F8FAFC',
+    padding: 15,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 15,
     borderWidth: 1,
     borderColor: '#F1F5F9'
   },
-  iconCircle: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  pillIcon: { fontSize: 18 },
-  pillLabel: { fontSize: 10, color: '#64748B', fontWeight: '600', textTransform: 'uppercase' },
-  pillValue: { fontSize: 16, color: '#0F172A', fontWeight: '800' },
+  iconCircle: { width: 40, height: 40, borderRadius: 12, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  statValue: { fontSize: 16, fontWeight: '800', color: '#0F172A' },
+  statLabel: { fontSize: 10, color: '#64748B', fontWeight: '600', textTransform: 'uppercase' },
 
-  waterCard: { margin: 20, backgroundColor: '#FFFFFF', padding: 20, borderRadius: 24, borderWidth: 1, borderColor: '#F1F5F9' },
-  waterInfo: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  waterTitle: { fontSize: 15, fontWeight: '700', color: '#0F172A' },
-  waterPercent: { fontSize: 18, fontWeight: '900', color: '#3B82F6' },
-  progressContainer: { height: 12, backgroundColor: '#F1F5F9', borderRadius: 6, overflow: 'hidden' },
-  progressBar: { height: '100%', backgroundColor: '#3B82F6', borderRadius: 6 },
-  waterHint: { fontSize: 12, color: '#94A3B8', marginTop: 10, fontWeight: '500' },
+  waterTankContainer: {
+    backgroundColor: '#F0F9FF',
+    padding: 20,
+    borderRadius: 25,
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#E0F2FE'
+  },
+  tankHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  tankTitle: { fontSize: 14, fontWeight: '700', color: '#0369A1' },
+  tankPercent: { fontSize: 18, fontWeight: '900', color: '#0369A1' },
+  tankTrack: { height: 12, backgroundColor: '#E0F2FE', borderRadius: 6, overflow: 'hidden' },
+  tankFill: { height: '100%', borderRadius: 6 },
+  tankFooter: { fontSize: 11, color: '#7DD3FC', marginTop: 8, fontWeight: '600', textAlign: 'right' },
 
-  actionsGrid: { paddingHorizontal: 20, flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  actionBtn: { width: '48%', paddingVertical: 18, borderRadius: 18, alignItems: 'center', marginBottom: 15, elevation: 2 },
-  actionBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 15 }
+  actionHub: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 30
+  },
+  actionBtn: {
+    width: '31%',
+    aspectRatio: 1,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 4
+  },
+  actionBtnText: { color: '#FFF', fontSize: 11, fontWeight: '800', marginTop: 8 }
 });

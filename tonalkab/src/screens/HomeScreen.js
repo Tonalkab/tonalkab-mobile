@@ -100,7 +100,24 @@ export default function HomeScreen({ navigation }) {
         Animated.spring(scale, { toValue: 1.02, friction: 5, tension: 100, useNativeDriver: true }).start();
       },
       onPanResponderMove: (_, gesture) => tilt.setValue({ x: gesture.dx, y: gesture.dy }),
-      onPanResponderRelease: () => resetTilt(),
+      onPanResponderRelease: (_, gesture) => {
+        const dx = Math.abs(gesture.dx);
+        const dy = Math.abs(gesture.dy);
+        const isTap = dx < 8 && dy < 8;
+
+        if (isTap) {
+          // Si hace un tap en la tarjeta, lo llevamos a los detalles directamente
+          const cm = macetas[currentIndex];
+          navigation.navigate('MacetaDetail', { 
+            id_maceta: cm.id_maceta, 
+            nombre_maceta: cm.nombre_maceta,
+            skin_actual_id: cm.skin_activa?.id || 1,
+            // ¡CORRECCIÓN 1! Enviamos la URL de la skin
+            skin_url: cm.skin_activa?.imagen_url || null 
+          });
+        }
+        resetTilt();
+      },
       onPanResponderTerminate: () => resetTilt(),
     })
   ).current;
@@ -229,7 +246,9 @@ export default function HomeScreen({ navigation }) {
               onPress={() => navigation.navigate('MacetaDetail', { 
                 id_maceta: currentMaceta.id_maceta, 
                 nombre_maceta: currentMaceta.nombre_maceta,
-                skin_actual_id: currentMaceta.skin_activa?.id || 1 
+                skin_actual_id: currentMaceta.skin_activa?.id || 1,
+                // ¡CORRECCIÓN 2! Enviamos la URL de la skin
+                skin_url: currentMaceta.skin_activa?.imagen_url || null 
               })}
             >
               <Text style={styles.detailBtnText}>Administrar Planta</Text>
