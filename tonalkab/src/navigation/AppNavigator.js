@@ -16,6 +16,8 @@ import EnciclopediaScreen from '../screens/EnciclopediaScreen';
 import AlertasScreen from '../screens/AlertasScreen';
 import PerfilScreen from '../screens/PerfilScreen';
 
+import MacetaVestidorScreen from '../screens/MacetaVestidorScreen';
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -102,6 +104,12 @@ export default function AppNavigator() {
           name="MacetaStats" 
           component={MacetaStatsScreen} 
           options={{ title: 'Gráficas e Historial' }} 
+        />
+
+        <Stack.Screen 
+          name="MacetaVestidor" 
+          component={MacetaVestidorScreen} 
+          options={{ title: 'Vestidor' }} 
         />
 
       </Stack.Navigator>

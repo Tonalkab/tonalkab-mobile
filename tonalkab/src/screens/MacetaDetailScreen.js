@@ -135,6 +135,22 @@ export default function MacetaDetailScreen({ route, navigation }) {
         </Text>
       </TouchableOpacity>
 
+      {/* 👕 VESTIDOR (NUEVO BOTÓN) */}
+      <TouchableOpacity
+        style={[styles.button, { backgroundColor: '#8B5CF6' }]}
+        onPress={() =>
+          navigation.navigate('MacetaVestidor', { 
+            id_maceta: id_maceta, 
+            nombre_maceta: nombre_maceta,
+            skin_actual_id: lectura?.skin_activa?.id || 1 
+          })
+        }
+      >
+        <Text style={styles.buttonText}>
+          Cambiar Skin 👕
+        </Text>
+      </TouchableOpacity>
+
       <View style={{ height: 40 }} />
     </ScrollView>
   );
