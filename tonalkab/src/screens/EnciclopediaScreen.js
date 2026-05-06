@@ -9,7 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import apiClient from '../api/client';
 
-export default function EnciclopediaScreen() {
+export default function EnciclopediaScreen({ navigation }) {
   const [plantas, setPlantas] = useState([]);
   const [filtro, setFiltro] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -35,7 +35,11 @@ export default function EnciclopediaScreen() {
   );
 
   const renderPlanta = ({ item }) => (
-    <TouchableOpacity style={styles.card} activeOpacity={0.7}>
+    <TouchableOpacity 
+      style={styles.card} 
+      activeOpacity={0.7}
+      onPress={() => navigation.navigate('PlantaDetail', { planta: item })} 
+    >
       <View style={styles.iconBox}>
         <Text style={styles.emojiArt}>🌿</Text>
       </View>

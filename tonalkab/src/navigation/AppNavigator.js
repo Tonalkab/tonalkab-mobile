@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons'; // Iconos nativos de Expo
 import { ThemeContext } from '../context/ThemeContext';
+import PlantaDetailScreen from '../screens/PlantaDetailScreen';
 
 // Importación de Pantallas
 import LoginScreen from '../screens/LoginScreen';
@@ -110,6 +111,12 @@ export default function AppNavigator() {
           name="MacetaVestidor" 
           component={MacetaVestidorScreen} 
           options={{ title: 'Vestidor' }} 
+        />
+
+        <Stack.Screen 
+          name="PlantaDetail" 
+          component={PlantaDetailScreen} 
+          options={{ headerShown: false }} // Ocultamos el header porque ya hicimos un botón de retroceso bonito
         />
 
       </Stack.Navigator>
