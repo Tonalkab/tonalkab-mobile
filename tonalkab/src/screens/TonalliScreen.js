@@ -3,7 +3,7 @@ import React, { useState, useRef } from 'react';
 import { 
   View, Text, StyleSheet, TextInput, TouchableOpacity, 
   FlatList, KeyboardAvoidingView, Platform, SafeAreaView, 
-  ActivityIndicator, Image, Keyboard
+  ActivityIndicator, Image, Keyboard, StatusBar as RNStatusBar 
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -171,8 +171,19 @@ export default function TonalliScreen({ navigation }) {
 const styles = StyleSheet.create({
   mainContainer: { flex: 1 },
   
-  // CABECERA
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#F1F5F9', backgroundColor: '#FFFFFF', zIndex: 10 },
+  // CABECERA: Aquí se suma la altura del status bar nativo en Android para evitar el notch
+  header: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20, 
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight + 15 : 15, 
+    paddingBottom: 15, 
+    borderBottomWidth: 1, 
+    borderBottomColor: '#F1F5F9', 
+    backgroundColor: '#FFFFFF', 
+    zIndex: 10 
+  },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F8FAFC', justifyContent: 'center', alignItems: 'center' },
   headerTitleBox: { alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
