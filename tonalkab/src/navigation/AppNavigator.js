@@ -3,9 +3,8 @@ import React, { useContext } from 'react';
 import { NavigationContainer, DefaultTheme, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons'; // Iconos nativos de Expo
+import { Ionicons } from '@expo/vector-icons'; 
 import { ThemeContext } from '../context/ThemeContext';
-import PlantaDetailScreen from '../screens/PlantaDetailScreen';
 
 // Importación de Pantallas
 import LoginScreen from '../screens/LoginScreen';
@@ -16,8 +15,11 @@ import MacetaStatsScreen from '../screens/MacetaStatsScreen';
 import EnciclopediaScreen from '../screens/EnciclopediaScreen';
 import AlertasScreen from '../screens/AlertasScreen';
 import PerfilScreen from '../screens/PerfilScreen';
-
 import MacetaVestidorScreen from '../screens/MacetaVestidorScreen';
+import PlantaDetailScreen from '../screens/PlantaDetailScreen';
+
+// --- NUEVA PANTALLA ---
+import TonalliScreen from '../screens/TonalliScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -29,7 +31,7 @@ function MainTabNavigator() {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        headerShown: false, // Ocultamos la barra superior en los tabs
+        headerShown: false,
         tabBarStyle: {
           backgroundColor: isDark ? '#1E293B' : '#FFFFFF',
           borderTopWidth: 0,
@@ -40,25 +42,37 @@ function MainTabNavigator() {
         },
         tabBarActiveTintColor: isDark ? '#4ADE80' : '#16A34A',
         tabBarInactiveTintColor: '#94A3B8',
-        tabBarIcon: ({ focused, color, size }) => {
+        tabBarIcon: ({ focused, color }) => {
           let iconName;
 
+          // Lógica de iconos incluyendo a Tonalli
           if (route.name === 'Macetas') {
             iconName = focused ? 'leaf' : 'leaf-outline';
           } else if (route.name === 'Enciclopedia') {
             iconName = focused ? 'book' : 'book-outline';
+          } else if (route.name === 'Tonalli') {
+            // Usamos sparkles para representar la Inteligencia Artificial
+            iconName = focused ? 'sparkles' : 'sparkles-outline';
           } else if (route.name === 'Alertas') {
             iconName = focused ? 'notifications' : 'notifications-outline';
           } else if (route.name === 'Perfil') {
             iconName = focused ? 'person' : 'person-outline';
           }
 
-          return <Ionicons name={iconName} size={28} color={color} />;
+          return <Ionicons name={iconName} size={26} color={color} />;
         },
       })}
     >
       <Tab.Screen name="Macetas" component={HomeScreen} />
       <Tab.Screen name="Enciclopedia" component={EnciclopediaScreen} />
+      
+      {/* SECCIÓN CENTRAL: TONALLI */}
+      <Tab.Screen 
+        name="Tonalli" 
+        component={TonalliScreen} 
+        options={{ tabBarLabel: 'IA Tonalli' }} 
+      />
+
       <Tab.Screen name="Alertas" component={AlertasScreen} />
       <Tab.Screen name="Perfil" component={PerfilScreen} />
     </Tab.Navigator>
@@ -83,14 +97,12 @@ export default function AppNavigator() {
     <NavigationContainer theme={isDark ? TonalkabDark : TonalkabLight}>
       <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShadowVisible: false }}>
         
-        {/* PANTALLA DE LOGIN (Pantalla Completa) */}
         <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
         
-        {/* LA BARRA INFERIOR DE NAVEGACIÓN (Sustituye al Home antiguo) */}
-        {/* Al nombrarlo "Home", el LoginScreen navegará automáticamente aquí sin tener que cambiar su código */}
+        {/* El login navegará a "Home", que ahora contiene los 5 tabs */}
         <Stack.Screen name="Home" component={MainTabNavigator} options={{ headerShown: false }} />
         
-        {/* PANTALLAS DE DETALLE (Pantalla Completa, ocultan la barra inferior al abrirse) */}
+        {/* Pantallas de detalle (se abren sobre los tabs) */}
         <Stack.Screen 
           name="MacetaDetail" 
           component={MacetaDetailScreen} 
@@ -106,17 +118,15 @@ export default function AppNavigator() {
           component={MacetaStatsScreen} 
           options={{ title: 'Gráficas e Historial' }} 
         />
-
         <Stack.Screen 
           name="MacetaVestidor" 
           component={MacetaVestidorScreen} 
           options={{ title: 'Vestidor' }} 
         />
-
         <Stack.Screen 
           name="PlantaDetail" 
           component={PlantaDetailScreen} 
-          options={{ headerShown: false }} // Ocultamos el header porque ya hicimos un botón de retroceso bonito
+          options={{ headerShown: false }} 
         />
 
       </Stack.Navigator>
