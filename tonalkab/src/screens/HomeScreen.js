@@ -18,6 +18,17 @@ export default function HomeScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // --- SOLUCIÓN DEL ERROR: Referencias para el PanResponder ---
+  const macetasRef = useRef(macetas);
+  const currentIndexRef = useRef(currentIndex);
+
+  // Sincronizamos las referencias cada vez que los estados cambian
+  useEffect(() => {
+    macetasRef.current = macetas;
+    currentIndexRef.current = currentIndex;
+  }, [macetas, currentIndex]);
+  // ------------------------------------------------------------
+
   // Animaciones (Mantenemos el tilt 3D y slide, quitamos el flip)
   const tilt = useRef(new Animated.ValueXY()).current;
   const slideX = useRef(new Animated.Value(0)).current;
@@ -106,15 +117,18 @@ export default function HomeScreen({ navigation }) {
         const isTap = dx < 8 && dy < 8;
 
         if (isTap) {
-          // Si hace un tap en la tarjeta, lo llevamos a los detalles directamente
-          const cm = macetas[currentIndex];
-          navigation.navigate('MacetaDetail', { 
-            id_maceta: cm.id_maceta, 
-            nombre_maceta: cm.nombre_maceta,
-            skin_actual_id: cm.skin_activa?.id || 1,
-            // ¡CORRECCIÓN 1! Enviamos la URL de la skin
-            skin_url: cm.skin_activa?.imagen_url || null 
-          });
+          // --- SOLUCIÓN DEL ERROR: Leer de las referencias ---
+          const cm = macetasRef.current[currentIndexRef.current];
+          
+          if (cm) { // Validación de seguridad extra
+            navigation.navigate('MacetaDetail', { 
+              id_maceta: cm.id_maceta, 
+              nombre_maceta: cm.nombre_maceta,
+              skin_actual_id: cm.skin_activa?.id || 1,
+              skin_url: cm.skin_activa?.imagen_url || null 
+            });
+          }
+          // ---------------------------------------------------
         }
         resetTilt();
       },
@@ -247,7 +261,6 @@ export default function HomeScreen({ navigation }) {
                 id_maceta: currentMaceta.id_maceta, 
                 nombre_maceta: currentMaceta.nombre_maceta,
                 skin_actual_id: currentMaceta.skin_activa?.id || 1,
-                // ¡CORRECCIÓN 2! Enviamos la URL de la skin
                 skin_url: currentMaceta.skin_activa?.imagen_url || null 
               })}
             >

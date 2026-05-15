@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Image,
-  FlatList, ActivityIndicator, Alert, SafeAreaView, Dimensions
+  FlatList, ActivityIndicator, Alert, SafeAreaView, Dimensions,
+  Platform, StatusBar as RNStatusBar 
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,7 +13,8 @@ import apiClient from '../api/client';
 const { width } = Dimensions.get('window');
 
 export default function MacetaVestidorScreen({ route, navigation }) {
-  const { id_maceta, nombre_maceta, skin_actual_id } = route.params || {};
+  // 🌟 RECIBIMOS LA FUNCIÓN onSkinChange
+  const { id_maceta, nombre_maceta, skin_actual_id, onSkinChange } = route.params || {};
 
   const [catalogo, setCatalogo] = useState([]);
   const [misSkins, setMisSkins] = useState([]);
@@ -74,6 +76,19 @@ export default function MacetaVestidorScreen({ route, navigation }) {
     }
   };
 
+  // 🌟 FUNCIÓN DE RETROCESO SEGURA Y SIN BUCLES
+  const handleGoBack = () => {
+    const skinActivaObj = catalogo.find(s => s.id === skinEquipada);
+    
+    // Si tenemos la función y una skin activa, le avisamos a MacetaDetailScreen
+    if (onSkinChange && skinActivaObj) {
+      onSkinChange(skinEquipada, skinActivaObj.imagen_url);
+    }
+    
+    // Usamos el retroceso seguro nativo. ¡Adiós a los laberintos de pantallas!
+    navigation.goBack();
+  };
+
   const renderSkinItem = ({ item }) => {
     const isUnlocked = misSkins.includes(item.id);
     const isEquipped = item.id === skinEquipada;
@@ -125,7 +140,7 @@ export default function MacetaVestidorScreen({ route, navigation }) {
       <LinearGradient colors={["#FFFFFF", "#F8FAFC", "#F1F5F9"]} style={StyleSheet.absoluteFill} />
 
       <View style={styles.headerRow}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backBtn} onPress={handleGoBack}>
           <Ionicons name="chevron-back" size={24} color="#0F172A" />
         </TouchableOpacity>
         <View style={styles.headerTitleBox}>
@@ -201,7 +216,14 @@ const styles = StyleSheet.create({
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#F8FAFC' },
   loadingText: { marginTop: 15, color: '#64748B', fontSize: 16, fontWeight: '500' },
   
-  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 10, paddingBottom: 20 },
+  headerRow: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    justifyContent: 'space-between', 
+    paddingHorizontal: 20, 
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight + 10 : 10, 
+    paddingBottom: 20 
+  },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
   headerTitleBox: { alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A' },

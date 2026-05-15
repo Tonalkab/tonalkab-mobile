@@ -121,7 +121,7 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="MacetaVestidor" 
           component={MacetaVestidorScreen} 
-          options={{ title: 'Vestidor' }} 
+          options={{ headerShown: false }} 
         />
         <Stack.Screen 
           name="PlantaDetail" 

@@ -13,15 +13,20 @@ import apiClient from '../api/client';
 const { width } = Dimensions.get('window');
 
 export default function MacetaDetailScreen({ route, navigation }) {
-  // AQUÍ RECIBIMOS LA URL DE LA SKIN (skin_url) DESDE EL HOME
   const { id_maceta, nombre_maceta, skin_actual_id, skin_url } = route.params;
   
   const [lectura, setLectura] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // 🌟 NUEVO: Estados locales para actualizar la imagen sin depender de la navegación
+  const [currentSkinId, setCurrentSkinId] = useState(skin_actual_id);
+  const [currentSkinUrl, setCurrentSkinUrl] = useState(skin_url);
+
   const baseURL = apiClient.defaults.baseURL || 'https://api.tonalkab.com';
 
   useEffect(() => {
     const fetchLecturaActual = async () => {
+      if (!id_maceta) return;
       try {
         const response = await apiClient.get(`/macetas/${id_maceta}/lecturas/actual`);
         setLectura(response.data);
@@ -32,7 +37,7 @@ export default function MacetaDetailScreen({ route, navigation }) {
       }
     };
     fetchLecturaActual();
-  }, [id_maceta]);
+  }, [id_maceta]); 
 
   const StatBox = ({ icon, label, value, unit, color }) => (
     <View style={styles.statCard}>
@@ -61,14 +66,13 @@ export default function MacetaDetailScreen({ route, navigation }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* --- SECCIÓN HÉROE (LA PLANTA) --- */}
         <View style={styles.heroSection}>
           <View style={styles.pedestalGlow} />
           
-          {/* AQUÍ USAMOS LA URL QUE PASAMOS POR PARÁMETROS */}
-          {skin_url ? (
+          {/* 🌟 USAMOS EL ESTADO LOCAL AQUÍ */}
+          {currentSkinUrl ? (
             <Image 
-              source={{ uri: `${baseURL}${skin_url}` }} 
+              source={{ uri: `${baseURL}${currentSkinUrl}` }} 
               style={styles.mainSkin} 
               resizeMode="contain"
             />
@@ -82,7 +86,6 @@ export default function MacetaDetailScreen({ route, navigation }) {
           </View>
         </View>
 
-        {/* --- PANEL DE INFORMACIÓN --- */}
         <View style={styles.infoPanel}>
           <Text style={styles.sectionTitle}>Estado del Entorno</Text>
           
@@ -93,7 +96,6 @@ export default function MacetaDetailScreen({ route, navigation }) {
             <StatBox icon="flash" label="Batería" value={lectura?.voltaje_bateria || 0} unit="V" color="#22C55E" />
           </View>
 
-          {/* --- TANQUE DE AGUA --- */}
           <View style={styles.waterTankContainer}>
             <View style={styles.tankHeader}>
               <Text style={styles.tankTitle}>Reserva de Agua</Text>
@@ -109,7 +111,6 @@ export default function MacetaDetailScreen({ route, navigation }) {
             <Text style={styles.tankFooter}>Aproximadamente {((lectura?.nivel_agua || 0) * 0.5 / 100).toFixed(1)}L disponibles</Text>
           </View>
 
-          {/* --- HUB DE ACCIONES --- */}
           <View style={styles.actionHub}>
              <TouchableOpacity 
               style={[styles.actionBtn, { backgroundColor: '#3B82F6' }]}
@@ -127,9 +128,18 @@ export default function MacetaDetailScreen({ route, navigation }) {
               <Text style={styles.actionBtnText}>Ajustes</Text>
             </TouchableOpacity>
 
+            {/* 🌟 AQUÍ LE PASAMOS LA FUNCIÓN AL VESTIDOR */}
             <TouchableOpacity 
               style={[styles.actionBtn, { backgroundColor: '#8B5CF6' }]}
-              onPress={() => navigation.navigate('MacetaVestidor', { id_maceta, nombre_maceta, skin_actual_id })}
+              onPress={() => navigation.navigate('MacetaVestidor', { 
+                id_maceta, 
+                nombre_maceta, 
+                skin_actual_id: currentSkinId,
+                onSkinChange: (nuevoId, nuevaUrl) => {
+                  setCurrentSkinId(nuevoId);
+                  setCurrentSkinUrl(nuevaUrl);
+                }
+              })}
             >
               <Ionicons name="shirt" size={24} color="#FFF" />
               <Text style={styles.actionBtnText}>Skins</Text>
