@@ -28,12 +28,11 @@ export default function AlertasScreen() {
       const resultados = await Promise.all(peticionesAlertas);
       
       // 3. Aplanamos los resultados en una sola lista
-      // Agregamos el nombre de la maceta a cada alerta para saber de quién es
       let todasLasAlertas = [];
       resultados.forEach((res, index) => {
         const alertasConNombre = res.data.map(alerta => ({
           ...alerta,
-          nombre_maceta: macetas[index].nombre_maceta // Pegamos el nombre desde la lista de macetas
+          nombre_maceta: macetas[index].nombre_maceta 
         }));
         todasLasAlertas = [...todasLasAlertas, ...alertasConNombre];
       });
@@ -53,7 +52,7 @@ export default function AlertasScreen() {
     fetchAlertasGlobales();
   }, []);
 
-  // Función para marcar como vista usando tu endpoint PATCH /alertas/{id}/vista
+  // Función para marcar como vista
   const marcarComoLeida = async (alertaId, index) => {
     try {
       const nuevasAlertas = [...alertas];
@@ -66,8 +65,7 @@ export default function AlertasScreen() {
     }
   };
 
-  // Traductor basado en tus comentarios del Modelo
-  // 1: baja_humedad, 2: bateria_baja, 3: desconexion, 4: nivel_agua_bajo
+  // Traductor de tipos de alertas
   const getAlertaInfo = (idTipo) => {
     switch (idTipo) {
       case 1: 
@@ -87,6 +85,21 @@ export default function AlertasScreen() {
     const info = getAlertaInfo(item.id_tipo_alerta);
     const isLeida = item.vista_usuario === true || item.id_estado_alerta === 2;
 
+    // 🌟 Parche de Zona Horaria (Alemania -> Local México -8 horas)
+    const corregirHoraServidor = (fechaIso) => {
+      if (!fechaIso) return new Date();
+      const fechaLimpia = fechaIso.replace(' ', 'T');
+      const d = new Date(fechaLimpia);
+      d.setHours(d.getHours() - 8); 
+      return d;
+    };
+
+    const fechaCorregida = corregirHoraServidor(item.fecha_hora);
+    
+    // Formateamos de forma limpia el día/mes y la hora correspondientes
+    const fechaTexto = fechaCorregida.toLocaleDateString([], { day: '2-digit', month: '2-digit' });
+    const horaTexto = fechaCorregida.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
     return (
       <TouchableOpacity 
         style={[styles.alertaCard, !isLeida && styles.alertaNoLeida]} 
@@ -100,9 +113,8 @@ export default function AlertasScreen() {
         <View style={styles.contentBox}>
           <View style={styles.headerRow}>
             <Text style={styles.alertaTitle}>{info.titulo}</Text>
-            <Text style={styles.alertaTime}>
-              {new Date(item.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </Text>
+            {/* 🌟 MUESTRA FECHA Y HORA JUNTAS */}
+            <Text style={styles.alertaTime}>{`${fechaTexto} - ${horaTexto}`}</Text>
           </View>
           <Text style={styles.alertaMaceta}>📍 {item.nombre_maceta}</Text>
           <Text style={styles.alertaMessage} numberOfLines={3}>{item.mensaje}</Text>
@@ -124,7 +136,7 @@ export default function AlertasScreen() {
           <Text style={styles.subtitle}>Estado del huerto en tiempo real</Text>
         </View>
         <TouchableOpacity style={styles.refreshBtn} onPress={fetchAlertasGlobales}>
-          <Ionicons name="refresh" size={20} color="#3B82F6" />
+          <Ionicons name="refresh" size= {20} color="#3B82F6" />
         </TouchableOpacity>
       </View>
 

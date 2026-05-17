@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, FlatList, TextInput, 
-  TouchableOpacity, ActivityIndicator, SafeAreaView, KeyboardAvoidingView, Platform 
+  TouchableOpacity, ActivityIndicator, SafeAreaView, KeyboardAvoidingView, Platform,
+  Image // 🌟 Agregamos Image a las importaciones
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,6 +14,9 @@ export default function EnciclopediaScreen({ navigation }) {
   const [plantas, setPlantas] = useState([]);
   const [filtro, setFiltro] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+
+  // 🌟 Definimos la URL base para cargar las imágenes desde tu servidor
+  const baseURL = apiClient.defaults.baseURL || 'https://api.tonalkab.com';
 
   // Cargamos las plantas desde tu API
   useEffect(() => {
@@ -41,7 +45,16 @@ export default function EnciclopediaScreen({ navigation }) {
       onPress={() => navigation.navigate('PlantaDetail', { planta: item })} 
     >
       <View style={styles.iconBox}>
-        <Text style={styles.emojiArt}>🌿</Text>
+        {/* 🌟 CONDICIONAL: Si hay imagen, la mostramos. Si no, mostramos el emoji */}
+        {item.imagen_url ? (
+          <Image 
+            source={{ uri: `${baseURL}${item.imagen_url}` }} 
+            style={styles.plantaImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <Text style={styles.emojiArt}>🌿</Text>
+        )}
       </View>
       
       <View style={styles.cardInfo}>
@@ -176,7 +189,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#DCFCE7',
     marginRight: 15,
+    overflow: 'hidden', // 🌟 IMPORTANTE: Para que la imagen no se salga de los bordes redondeados
   },
+  plantaImage: { 
+    width: '100%', 
+    height: '100%' 
+  }, // 🌟 Estilo para la nueva imagen
   emojiArt: { fontSize: 30 },
   
   cardInfo: { flex: 1, justifyContent: 'center' },

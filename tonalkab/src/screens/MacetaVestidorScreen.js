@@ -13,7 +13,6 @@ import apiClient from '../api/client';
 const { width } = Dimensions.get('window');
 
 export default function MacetaVestidorScreen({ route, navigation }) {
-  // 🌟 RECIBIMOS LA FUNCIÓN onSkinChange
   const { id_maceta, nombre_maceta, skin_actual_id, onSkinChange } = route.params || {};
 
   const [catalogo, setCatalogo] = useState([]);
@@ -76,16 +75,13 @@ export default function MacetaVestidorScreen({ route, navigation }) {
     }
   };
 
-  // 🌟 FUNCIÓN DE RETROCESO SEGURA Y SIN BUCLES
   const handleGoBack = () => {
     const skinActivaObj = catalogo.find(s => s.id === skinEquipada);
     
-    // Si tenemos la función y una skin activa, le avisamos a MacetaDetailScreen
     if (onSkinChange && skinActivaObj) {
       onSkinChange(skinEquipada, skinActivaObj.imagen_url);
     }
     
-    // Usamos el retroceso seguro nativo. ¡Adiós a los laberintos de pantallas!
     navigation.goBack();
   };
 
@@ -221,8 +217,8 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'space-between', 
     paddingHorizontal: 20, 
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight + 10 : 10, 
-    paddingBottom: 20 
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight + 5 : 5, 
+    paddingBottom: 10 // 🌟 Margen reducido
   },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
   headerTitleBox: { alignItems: 'center' },
@@ -232,36 +228,36 @@ const styles = StyleSheet.create({
   vitrinaContainer: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
-    borderRadius: 30,
-    paddingTop: 30,
-    paddingBottom: 25,
+    borderRadius: 25, // 🌟 Radio más suave
+    paddingTop: 15, // 🌟 Relleno superior reducido
+    paddingBottom: 15, // 🌟 Relleno inferior reducido
     paddingHorizontal: 20,
     alignItems: 'center',
     shadowColor: '#0F172A',
-    shadowOffset: { width: 0, height: 15 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.04,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowRadius: 15,
+    elevation: 8,
     borderWidth: 1,
     borderColor: '#F1F5F9',
-    marginBottom: 25
+    marginBottom: 15 // 🌟 Margen inferior reducido drásticamente
   },
   auraGlow: {
     position: 'absolute',
-    top: 50,
-    width: 180,
-    height: 180,
+    top: 30, // 🌟 Aura ajustada a la nueva imagen
+    width: 140,
+    height: 140,
     backgroundColor: 'rgba(34, 197, 94, 0.10)',
-    borderRadius: 90
+    borderRadius: 70
   },
-  vitrinaImage: { width: 200, height: 200, marginBottom: 20 },
-  placeholderImage: { width: 200, height: 200, backgroundColor: '#F8FAFC', borderRadius: 100, marginBottom: 20 },
+  vitrinaImage: { width: 160, height: 160, marginBottom: 10 }, // 🌟 Imagen más compacta
+  placeholderImage: { width: 160, height: 160, backgroundColor: '#F8FAFC', borderRadius: 80, marginBottom: 10 },
   
   infoBox: { width: '100%', alignItems: 'center' },
-  skinName: { color: '#0F172A', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
-  skinDesc: { color: '#64748B', fontSize: 13, textAlign: 'center', marginTop: 8, marginBottom: 20, paddingHorizontal: 10, fontWeight: '500', lineHeight: 18 },
+  skinName: { color: '#0F172A', fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  skinDesc: { color: '#64748B', fontSize: 13, textAlign: 'center', marginTop: 4, marginBottom: 12, paddingHorizontal: 10, fontWeight: '500', lineHeight: 18 }, // 🌟 Márgenes de texto reducidos
   
-  actionBtn: { width: '90%', paddingVertical: 16, borderRadius: 18, alignItems: 'center', elevation: 2 },
+  actionBtn: { width: '90%', paddingVertical: 14, borderRadius: 16, alignItems: 'center', elevation: 2 }, // 🌟 Botón un poco más delgado
   actionBtnActive: { backgroundColor: '#22C55E', shadowColor: '#22C55E', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12 },
   actionBtnDisabled: { backgroundColor: '#E2E8F0', shadowColor: 'transparent', elevation: 0 },
   actionBtnLocked: { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0', elevation: 0, shadowColor: 'transparent' },

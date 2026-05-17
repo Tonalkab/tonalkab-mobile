@@ -18,7 +18,6 @@ export default function MacetaDetailScreen({ route, navigation }) {
   const [lectura, setLectura] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   
-  // 🌟 NUEVO: Estados locales para actualizar la imagen sin depender de la navegación
   const [currentSkinId, setCurrentSkinId] = useState(skin_actual_id);
   const [currentSkinUrl, setCurrentSkinUrl] = useState(skin_url);
 
@@ -69,7 +68,6 @@ export default function MacetaDetailScreen({ route, navigation }) {
         <View style={styles.heroSection}>
           <View style={styles.pedestalGlow} />
           
-          {/* 🌟 USAMOS EL ESTADO LOCAL AQUÍ */}
           {currentSkinUrl ? (
             <Image 
               source={{ uri: `${baseURL}${currentSkinUrl}` }} 
@@ -79,11 +77,6 @@ export default function MacetaDetailScreen({ route, navigation }) {
           ) : (
             <Text style={styles.placeholderEmoji}>🌿</Text>
           )}
-          
-          <View style={styles.badgeHumedad}>
-            <Ionicons name="water" size={16} color="#3B82F6" />
-            <Text style={styles.badgeText}>{lectura?.humedad_suelo || 0}% Hidratación</Text>
-          </View>
         </View>
 
         <View style={styles.infoPanel}>
@@ -93,7 +86,7 @@ export default function MacetaDetailScreen({ route, navigation }) {
             <StatBox icon="thermometer" label="Temperatura" value={lectura?.temperatura || 0} unit="°C" color="#F59E0B" />
             <StatBox icon="sunny" label="Nivel Luz" value={lectura?.nivel_luz || 0} unit=" uv" color="#EAB308" />
             <StatBox icon="cloud" label="Hum. Aire" value={lectura?.humedad_ambiental || 0} unit="%" color="#64748B" />
-            <StatBox icon="flash" label="Batería" value={lectura?.voltaje_bateria || 0} unit="V" color="#22C55E" />
+            <StatBox icon="water" label="Hum. Tierra" value={lectura?.humedad_suelo || 0} unit="%" color="#3B82F6" />
           </View>
 
           <View style={styles.waterTankContainer}>
@@ -128,7 +121,6 @@ export default function MacetaDetailScreen({ route, navigation }) {
               <Text style={styles.actionBtnText}>Ajustes</Text>
             </TouchableOpacity>
 
-            {/* 🌟 AQUÍ LE PASAMOS LA FUNCIÓN AL VESTIDOR */}
             <TouchableOpacity 
               style={[styles.actionBtn, { backgroundColor: '#8B5CF6' }]}
               onPress={() => navigation.navigate('MacetaVestidor', { 
@@ -181,21 +173,6 @@ const styles = StyleSheet.create({
     shadowRadius: 20,
   },
   placeholderEmoji: { fontSize: 100 },
-  badgeHumedad: {
-    position: 'absolute',
-    bottom: 20,
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 5
-  },
-  badgeText: { marginLeft: 6, fontWeight: '700', color: '#1E293B', fontSize: 13 },
 
   infoPanel: {
     backgroundColor: '#FFFFFF',

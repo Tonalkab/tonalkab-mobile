@@ -24,24 +24,39 @@ export default function MacetaStatsScreen({ route }) {
         const res = await apiClient.get(`/macetas/${id_maceta}/lecturas/historial?limit=20`);
         const historial = res.data.reverse(); 
 
+        // Parche de Zona Horaria (Alemania -> Local)
+        const corregirHoraServidor = (fechaIso) => {
+          if (!fechaIso) return new Date();
+          const fechaLimpia = fechaIso.replace(' ', 'T');
+          const d = new Date(fechaLimpia);
+          d.setHours(d.getHours() - 8); // Restamos las 8 horas de diferencia con Nuremberg
+          return d;
+        };
+
+        // 🌟 FUNCIÓN SIMPLIFICADA: Ahora siempre retorna únicamente la hora corregida
+        const formatLabel = (fechaIso) => {
+          const d = corregirHoraServidor(fechaIso);
+          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        };
+
         const formattedHumedad = historial.map((item, index) => ({
           value: parseFloat(item.humedad_suelo || 0),
-          label: index % 4 === 0 ? new Date(item.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          label: index % 4 === 0 ? formatLabel(item.fecha_hora) : '',
         }));
 
         const formattedTemp = historial.map((item, index) => ({
           value: parseFloat(item.temperatura || 0),
-          label: index % 4 === 0 ? new Date(item.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          label: index % 4 === 0 ? formatLabel(item.fecha_hora) : '',
         }));
 
         const formattedHumAmb = historial.map((item, index) => ({
           value: parseFloat(item.humedad_ambiental || 0),
-          label: index % 4 === 0 ? new Date(item.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          label: index % 4 === 0 ? formatLabel(item.fecha_hora) : '',
         }));
 
         const formattedLuz = historial.map((item, index) => ({
           value: parseFloat(item.nivel_luz || 0),
-          label: index % 4 === 0 ? new Date(item.fecha_hora).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+          label: index % 4 === 0 ? formatLabel(item.fecha_hora) : '',
         }));
 
         setDataHumedad(formattedHumedad);
@@ -262,7 +277,7 @@ const styles = StyleSheet.create({
   chartSubtitle: { fontSize: 12, fontWeight: '500', color: '#94A3B8', marginTop: 2 },
   
   yAxisText: { color: '#94A3B8', fontSize: 11, fontWeight: '600' },
-  xAxisText: { color: '#94A3B8', fontSize: 10, fontWeight: '500' },
+  xAxisText: { color: '#94A3B8', fontSize: 10, fontWeight: '500', textAlign: 'center' },
 
   insightCard: { 
     backgroundColor: '#EFF6FF', 
