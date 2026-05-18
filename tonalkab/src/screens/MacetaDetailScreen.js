@@ -9,6 +9,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import apiClient from '../api/client';
+import { obtenerInfoUV } from '../utils/uvHelper'; 
 
 const { width } = Dimensions.get('window');
 
@@ -43,9 +44,9 @@ export default function MacetaDetailScreen({ route, navigation }) {
       <View style={[styles.iconCircle, { backgroundColor: color + '20' }]}>
         <Ionicons name={icon} size={20} color={color} />
       </View>
-      <View>
+      <View style={{ flex: 1 }}>
         <Text style={styles.statValue}>{value}{unit}</Text>
-        <Text style={styles.statLabel}>{label}</Text>
+        <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>{label}</Text>
       </View>
     </View>
   );
@@ -57,6 +58,8 @@ export default function MacetaDetailScreen({ route, navigation }) {
       </View>
     );
   }
+
+  const uvInfo = obtenerInfoUV(lectura?.nivel_luz);
 
   return (
     <View style={styles.mainContainer}>
@@ -84,7 +87,15 @@ export default function MacetaDetailScreen({ route, navigation }) {
           
           <View style={styles.statsGrid}>
             <StatBox icon="thermometer" label="Temperatura" value={lectura?.temperatura || 0} unit="°C" color="#F59E0B" />
-            <StatBox icon="sunny" label="Nivel Luz" value={lectura?.nivel_luz || 0} unit=" uv" color="#EAB308" />
+            
+            <StatBox 
+              icon="sunny" 
+              label={`Luz (${uvInfo.categoria})`} 
+              value={uvInfo.valor} 
+              unit=" IUV" 
+              color={uvInfo.color} 
+            />
+            
             <StatBox icon="cloud" label="Hum. Aire" value={lectura?.humedad_ambiental || 0} unit="%" color="#64748B" />
             <StatBox icon="water" label="Hum. Tierra" value={lectura?.humedad_suelo || 0} unit="%" color="#3B82F6" />
           </View>
@@ -101,7 +112,8 @@ export default function MacetaDetailScreen({ route, navigation }) {
                 style={[styles.tankFill, { width: `${lectura?.nivel_agua || 0}%` }]} 
               />
             </View>
-            <Text style={styles.tankFooter}>Aproximadamente {((lectura?.nivel_agua || 0) * 0.5 / 100).toFixed(1)}L disponibles</Text>
+            {/* 🌟 CÁLCULO ACTUALIZADO A 1.7 LITROS */}
+            <Text style={styles.tankFooter}>Aproximadamente {((lectura?.nivel_agua || 0) * 1.7 / 100).toFixed(1)}L disponibles</Text>
           </View>
 
           <View style={styles.actionHub}>

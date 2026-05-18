@@ -92,7 +92,7 @@ export default function PlantaDetailScreen({ route, navigation }) {
             {planta.descripcion || "Especie registrada en la base de datos de Tonalkab."}
           </Text>
 
-          {/* HISTORIA Y ORIGEN (NUEVA SECCIÓN) */}
+          {/* HISTORIA Y ORIGEN */}
           {(planta.historia || planta.origen_geografico) && (
             <View style={styles.narrativeCard}>
               <View style={styles.narrativeHeader}>
@@ -111,7 +111,7 @@ export default function PlantaDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          {/* CUIDADOS GENERALES (NUEVA SECCIÓN) */}
+          {/* CUIDADOS GENERALES */}
           {planta.cuidados_generales && (
             <View style={[styles.narrativeCard, { backgroundColor: '#FEF2F2', borderColor: '#FEE2E2' }]}>
               <View style={styles.narrativeHeader}>
@@ -124,23 +124,23 @@ export default function PlantaDetailScreen({ route, navigation }) {
             </View>
           )}
 
-          <Text style={styles.sectionTitle}>Requisitos del Hardware</Text>
+          <Text style={styles.sectionTitle}>Requisitos del Entorno</Text>
           
           {/* CUADRÍCULA DE DATOS TÉCNICOS */}
           <View style={styles.grid}>
             <InfoCard 
               icon="water-outline" 
-              label="Humedad Min." 
-              value={`${planta.humedad_suelo_min || 0}%`} 
+              label="Hum. Suelo" 
+              value={`${planta.humedad_suelo_min || 0}% - ${planta.humedad_suelo_max || 0}%`} 
               color="#3B82F6" 
               bgColor="#EFF6FF" 
             />
             <InfoCard 
-              icon="water" 
-              label="Humedad Máx." 
-              value={`${planta.humedad_suelo_max || 0}%`} 
-              color="#2563EB" 
-              bgColor="#DBEAFE" 
+              icon="cloudy-outline" 
+              label="Hum. Ambiente" 
+              value={`${planta.humedad_ambiente_min || 0}% - ${planta.humedad_ambiente_max || 0}%`} 
+              color="#0EA5E9" 
+              bgColor="#E0F2FE" 
             />
             <InfoCard 
               icon="thermometer" 
@@ -152,7 +152,7 @@ export default function PlantaDetailScreen({ route, navigation }) {
             <InfoCard 
               icon="time" 
               label="Ciclo de Riego" 
-              value={`${planta.tiempo_min_entre_riegos_dias || 0} Días (Pausa)`} 
+              value={`${planta.tiempo_min_entre_riegos_dias || 0} Días`} 
               color="#8B5CF6" 
               bgColor="#EDE9FE" 
             />
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
   
   descriptionText: { fontSize: 15, lineHeight: 24, color: '#64748B', fontWeight: '500', marginBottom: 25 },
   
-  // TARJETAS DE NARRATIVA (Historia y Cuidados)
+  // TARJETAS DE NARRATIVA
   narrativeCard: { backgroundColor: '#F0F9FF', padding: 20, borderRadius: 20, marginBottom: 20, borderWidth: 1, borderColor: '#E0F2FE' },
   narrativeHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
   narrativeTitle: { fontSize: 16, fontWeight: '800', color: '#0369A1', marginLeft: 8 },

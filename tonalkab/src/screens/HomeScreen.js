@@ -7,9 +7,9 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
 import apiClient from '../api/client';
+import { obtenerInfoUV } from '../utils/uvHelper';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-// Tarjeta ligeramente más alta para acomodar el estilo "Carta de Juego"
 const CARD_WIDTH = 310;
 const CARD_HEIGHT = 480;
 
@@ -18,18 +18,14 @@ export default function HomeScreen({ navigation }) {
   const [isLoading, setIsLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // --- SOLUCIÓN DEL ERROR: Referencias para el PanResponder ---
   const macetasRef = useRef(macetas);
   const currentIndexRef = useRef(currentIndex);
 
-  // Sincronizamos las referencias cada vez que los estados cambian
   useEffect(() => {
     macetasRef.current = macetas;
     currentIndexRef.current = currentIndex;
   }, [macetas, currentIndex]);
-  // ------------------------------------------------------------
 
-  // Animaciones (Mantenemos el tilt 3D y slide, quitamos el flip)
   const tilt = useRef(new Animated.ValueXY()).current;
   const slideX = useRef(new Animated.Value(0)).current;
   const scale = useRef(new Animated.Value(1)).current;
@@ -39,17 +35,34 @@ export default function HomeScreen({ navigation }) {
   const fetchMacetas = async () => {
     setIsLoading(true);
     try {
+      // 1. Pedimos las macetas del usuario
       const response = await apiClient.get('/macetas/');
       const macetasData = response.data;
 
+      // 2. Pedimos el catálogo de plantas (aquí vienen los umbrales)
+      const plantasRes = await apiClient.get('/catalogos/plantas');
+      const catalogoPlantas = plantasRes.data;
+
       const macetasConLecturas = await Promise.all(
         macetasData.map(async (maceta) => {
+          
+          // 3. Buscamos la planta de esta maceta específica en el catálogo
+          const infoPlanta = catalogoPlantas.find(p => p.id_tipo_planta === maceta.id_tipo_planta);
+
+          let lectura = null;
           try {
             const lecturaRes = await apiClient.get(`/macetas/${maceta.id_maceta}/lecturas/actual`);
-            return { ...maceta, lectura: lecturaRes.data };
+            lectura = lecturaRes.data;
           } catch (err) {
-            return { ...maceta, lectura: null }; 
+            console.log("No hay lecturas para la maceta:", maceta.id_maceta);
           }
+          
+          // 4. Retornamos la maceta, su lectura, ¡Y los datos de su planta incrustados!
+          return { 
+            ...maceta, 
+            lectura: lectura, 
+            tipo_planta: infoPlanta // <--- Ahora getUmbral lo va a encontrar aquí
+          };
         })
       );
       setMacetas(macetasConLecturas);
@@ -65,7 +78,6 @@ export default function HomeScreen({ navigation }) {
     return unsubscribe;
   }, [navigation]);
 
-  // Cálculos para el efecto holográfico / Inclinación 3D
   const rotateX = tilt.y.interpolate({
     inputRange: [-180, 0, 180],
     outputRange: ["15deg", "0deg", "-15deg"],
@@ -117,10 +129,8 @@ export default function HomeScreen({ navigation }) {
         const isTap = dx < 8 && dy < 8;
 
         if (isTap) {
-          // --- SOLUCIÓN DEL ERROR: Leer de las referencias ---
           const cm = macetasRef.current[currentIndexRef.current];
-          
-          if (cm) { // Validación de seguridad extra
+          if (cm) { 
             navigation.navigate('MacetaDetail', { 
               id_maceta: cm.id_maceta, 
               nombre_maceta: cm.nombre_maceta,
@@ -128,13 +138,33 @@ export default function HomeScreen({ navigation }) {
               skin_url: cm.skin_activa?.imagen_url || null 
             });
           }
-          // ---------------------------------------------------
         }
         resetTilt();
       },
       onPanResponderTerminate: () => resetTilt(),
     })
   ).current;
+
+  // 🌟 HELPER ROBUSTO: Ahora obliga a Javascript a tratar el 0 como un número válido
+  const getStatColor = (valorActual, min, max) => {
+    if (valorActual === null || valorActual === undefined) return '#0F172A';
+    if (min === null || min === undefined || max === null || max === undefined) return '#0F172A';
+    
+    const val = Number(valorActual);
+    const valMin = Number(min);
+    const valMax = Number(max);
+
+    if (val < valMin || val > valMax) return '#EF4444'; // Rojo (Peligro/Fuera de rango)
+    return '#0F172A'; // Normal
+  };
+
+  // 🌟 HELPER DE BÚSQUEDA: Escarba en el objeto para encontrar los límites, sin importar cómo los envíe la API
+  const getUmbral = (maceta, campo) => {
+    return maceta[campo] 
+      ?? maceta.planta?.[campo] 
+      ?? maceta.tipo_planta?.[campo] 
+      ?? maceta.configuracion?.[campo];
+  };
 
   if (isLoading) {
     return (
@@ -160,6 +190,25 @@ export default function HomeScreen({ navigation }) {
   const isOnline = currentMaceta.id_estado_dispositivo === 1;
   const lectura = currentMaceta.lectura;
 
+  const uvInfo = lectura ? obtenerInfoUV(lectura.nivel_luz) : null;
+
+  // Evaluamos usando el nuevo Helper de Umbrales
+  const colorHumedadSuelo = lectura 
+    ? getStatColor(
+        lectura.humedad_suelo, 
+        getUmbral(currentMaceta, 'humedad_suelo_min'), 
+        getUmbral(currentMaceta, 'humedad_suelo_max')
+      ) 
+    : '#0F172A';
+
+  const colorTemperatura = lectura 
+    ? getStatColor(
+        lectura.temperatura, 
+        getUmbral(currentMaceta, 'temperatura_min'), 
+        getUmbral(currentMaceta, 'temperatura_max')
+      ) 
+    : '#0F172A';
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -181,9 +230,7 @@ export default function HomeScreen({ navigation }) {
             { transform: [{ perspective: 1200 }, { translateX: slideX }, { rotateX }, { rotateY }, { scale }] },
           ]}
         >
-          {/* DISEÑO TIPO CARTA DE JUEGO (TCG) */}
           <View style={styles.card}>
-            {/* Cabecera de la Carta */}
             <View style={styles.cardHeader}>
               <Text style={styles.plantName} numberOfLines={1}>{currentMaceta.nombre_maceta}</Text>
               <View style={[styles.statusBadge, { backgroundColor: isOnline ? '#DCFCE7' : '#FEE2E2' }]}>
@@ -194,7 +241,6 @@ export default function HomeScreen({ navigation }) {
               </View>
             </View>
 
-            {/* Zona de Arte / Skin */}
             <View style={styles.artBox}>
               <LinearGradient colors={["#F8FAFC", "#E2E8F0"]} style={styles.artBackground} />
               {currentMaceta.skin_activa ? (
@@ -208,7 +254,6 @@ export default function HomeScreen({ navigation }) {
               )}
             </View>
 
-            {/* Atributos / Sensores */}
             <View style={styles.attributesSection}>
               <Text style={styles.attributesTitle}>ATRIBUTOS DE ENTORNO</Text>
               
@@ -217,32 +262,42 @@ export default function HomeScreen({ navigation }) {
                   {/* Humedad Suelo */}
                   <View style={styles.statPill}>
                     <Text style={styles.statIcon}>💧</Text>
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={styles.statLabel}>Suelo</Text>
-                      <Text style={styles.statValue}>{lectura.humedad_suelo}%</Text>
+                      <Text style={[styles.statValue, { color: colorHumedadSuelo }]}>
+                        {lectura.humedad_suelo}%
+                      </Text>
                     </View>
                   </View>
+                  
                   {/* Temperatura */}
                   <View style={styles.statPill}>
                     <Text style={styles.statIcon}>🌡️</Text>
-                    <View>
+                    <View style={{ flex: 1 }}>
                       <Text style={styles.statLabel}>Temp</Text>
-                      <Text style={styles.statValue}>{lectura.temperatura}°C</Text>
+                      <Text style={[styles.statValue, { color: colorTemperatura }]}>
+                        {lectura.temperatura}°C
+                      </Text>
                     </View>
                   </View>
-                  {/* Luz */}
+                  
+                  {/* Luz (Índice UV) */}
                   <View style={styles.statPill}>
                     <Text style={styles.statIcon}>☀️</Text>
-                    <View>
-                      <Text style={styles.statLabel}>Luz</Text>
-                      <Text style={styles.statValue}>{lectura.nivel_luz}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.statLabel}>Luz (IUV)</Text>
+                      <Text style={[styles.statValue, { color: uvInfo.color }]}>
+                        {uvInfo.valor}
+                      </Text>
                     </View>
                   </View>
+                  
                   {/* Humedad Ambiente */}
                   <View style={styles.statPill}>
                     <Text style={styles.statIcon}>☁️</Text>
-                    <View>
-                      <Text style={styles.statLabel}>Aire</Text>
+                    {/* 🌟 Agregamos flex: 1 y adjustsFontSizeToFit para que el texto largo no rompa la tarjeta */}
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.statLabel} numberOfLines={1} adjustsFontSizeToFit>Hum. Ambiente</Text>
                       <Text style={styles.statValue}>{lectura.humedad_ambiental}%</Text>
                     </View>
                   </View>
@@ -254,7 +309,6 @@ export default function HomeScreen({ navigation }) {
               )}
             </View>
 
-            {/* Botón de Acción Integrado */}
             <TouchableOpacity 
               style={styles.detailBtn}
               onPress={() => navigation.navigate('MacetaDetail', { 
@@ -271,7 +325,6 @@ export default function HomeScreen({ navigation }) {
         </Animated.View>
       </View>
 
-      {/* ZONA DE CONTROLES */}
       {macetas.length > 1 && (
         <View style={styles.controlsContainer}>
           <Pressable style={styles.controlBtn} onPress={() => changeCard("prev")}>
@@ -311,7 +364,6 @@ const styles = StyleSheet.create({
 
   cardContainer: { width: CARD_WIDTH, height: CARD_HEIGHT },
 
-  // ESTILOS CARTA DE JUEGO (TCG)
   card: { 
     width: CARD_WIDTH, 
     height: CARD_HEIGHT, 
@@ -355,7 +407,6 @@ const styles = StyleSheet.create({
   detailBtn: { backgroundColor: '#22C55E', paddingVertical: 14, borderRadius: 14, alignItems: 'center' },
   detailBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700', letterSpacing: 0.5 },
 
-  // CONTROLES INFERIORES
   controlsContainer: { flexDirection: 'row', gap: 15, marginTop: 15 },
   controlBtn: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 25, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#E2E8F0', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
   controlBtnText: { color: '#0F172A', fontSize: 14, fontWeight: '700' },

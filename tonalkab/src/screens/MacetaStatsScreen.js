@@ -6,6 +6,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import apiClient from '../api/client';
+import { obtenerInfoUV } from '../utils/uvHelper'; // 🌟 Importamos la función de conversión
 
 const { width } = Dimensions.get('window');
 
@@ -33,7 +34,6 @@ export default function MacetaStatsScreen({ route }) {
           return d;
         };
 
-        // 🌟 FUNCIÓN SIMPLIFICADA: Ahora siempre retorna únicamente la hora corregida
         const formatLabel = (fechaIso) => {
           const d = corregirHoraServidor(fechaIso);
           return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -54,10 +54,14 @@ export default function MacetaStatsScreen({ route }) {
           label: index % 4 === 0 ? formatLabel(item.fecha_hora) : '',
         }));
 
-        const formattedLuz = historial.map((item, index) => ({
-          value: parseFloat(item.nivel_luz || 0),
-          label: index % 4 === 0 ? formatLabel(item.fecha_hora) : '',
-        }));
+        // 🌟 Usamos la función helper para convertir el valor crudo al Índice UV (0 a 11+)
+        const formattedLuz = historial.map((item, index) => {
+          const uvInfo = obtenerInfoUV(item.nivel_luz);
+          return {
+            value: uvInfo.valorNum || 0, 
+            label: index % 4 === 0 ? formatLabel(item.fecha_hora) : '',
+          };
+        });
 
         setDataHumedad(formattedHumedad);
         setDataTemp(formattedTemp);
@@ -204,8 +208,9 @@ export default function MacetaStatsScreen({ route }) {
               <Ionicons name="sunny" size={20} color="#EAB308" />
             </View>
             <View>
-              <Text style={styles.chartTitle}>Nivel de Luz</Text>
-              <Text style={styles.chartSubtitle}>Exposición solar</Text>
+              {/* 🌟 Título actualizado para reflejar la nueva escala */}
+              <Text style={styles.chartTitle}>Nivel de Luz (IUV)</Text>
+              <Text style={styles.chartSubtitle}>Escala de Índice UV (0 a 11+)</Text>
             </View>
           </View>
 
