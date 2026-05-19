@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ActivityIndicator,
-  ScrollView, TouchableOpacity, Image, Dimensions
+  ScrollView, TouchableOpacity, Image, Dimensions, Alert
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +38,59 @@ export default function MacetaDetailScreen({ route, navigation }) {
     };
     fetchLecturaActual();
   }, [id_maceta]); 
+
+  // --- FUNCIÓN ORIGINAL: FORZAR RIEGO EDGE ---
+  const handleRegarAhora = async () => {
+    Alert.alert(
+      "Regar Planta 💧",
+      "¿Estás seguro de que deseas forzar el riego ahora mismo?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Sí, regar", 
+          onPress: async () => {
+            try {
+              const res = await apiClient.post(`/macetas/${id_maceta}/forzar-riego-edge`);
+              Alert.alert("Orden enviada", res.data.nota);
+            } catch (error) {
+              Alert.alert(
+                "Aviso", 
+                error.response?.data?.detail || "No se pudo enviar la orden."
+              );
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  // --- NUEVA FUNCIÓN: RIEGO TEMPORIZADO CORTO (OPCIÓN B) ---
+  const handleRegarCincoSegundos = async () => {
+    Alert.alert(
+      "Riego Corto ⏱️",
+      "¿Deseas activar la bomba por exactamente 5 segundos?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Sí, regar", 
+          onPress: async () => {
+            try {
+              // 🌟 Pasamos el parámetro 'segundos' al cuerpo de la petición
+              const res = await apiClient.post(`/macetas/${id_maceta}/forzar-riego-edge`, { 
+                segundos: 5 
+              });
+              Alert.alert("Orden enviada", res.data.nota || "Bomba programada por 5 segundos.");
+            } catch (error) {
+              Alert.alert(
+                "Aviso", 
+                error.response?.data?.detail || "No se pudo enviar la orden."
+              );
+            }
+          }
+        }
+      ]
+    );
+  };
 
   const StatBox = ({ icon, label, value, unit, color }) => (
     <View style={styles.statCard}>
@@ -112,9 +165,26 @@ export default function MacetaDetailScreen({ route, navigation }) {
                 style={[styles.tankFill, { width: `${lectura?.nivel_agua || 0}%` }]} 
               />
             </View>
-            {/* 🌟 CÁLCULO ACTUALIZADO A 1.7 LITROS */}
             <Text style={styles.tankFooter}>Aproximadamente {((lectura?.nivel_agua || 0) * 1.7 / 100).toFixed(1)}L disponibles</Text>
           </View>
+
+          {/* --- BOTÓN DE REGAR AHORA ORIGINAL --- */}
+          <TouchableOpacity 
+            style={styles.waterNowBtn}
+            onPress={handleRegarAhora}
+          >
+            <Ionicons name="water" size={24} color="#FFFFFF" style={{ marginRight: 10 }} />
+            <Text style={styles.waterNowBtnText}>Forzar Riego Ahora</Text>
+          </TouchableOpacity>
+
+          {/* --- 🌟 NUEVO BOTÓN: REGAR 5 SEGUNDOS --- */}
+          <TouchableOpacity 
+            style={[styles.waterNowBtn, { backgroundColor: '#2563EB', marginTop: 12 }]}
+            onPress={handleRegarCincoSegundos}
+          >
+            <Ionicons name="timer-outline" size={24} color="#FFFFFF" style={{ marginRight: 10 }} />
+            <Text style={styles.waterNowBtnText}>Regar 5 Segundos</Text>
+          </TouchableOpacity>
 
           <View style={styles.actionHub}>
              <TouchableOpacity 
@@ -232,10 +302,31 @@ const styles = StyleSheet.create({
   tankFill: { height: '100%', borderRadius: 6 },
   tankFooter: { fontSize: 11, color: '#7DD3FC', marginTop: 8, fontWeight: '600', textAlign: 'right' },
 
+  waterNowBtn: {
+    backgroundColor: '#0EA5E9', 
+    flexDirection: 'row',
+    paddingVertical: 16,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    shadowColor: '#0EA5E9',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4
+  },
+  waterNowBtnText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.5
+  },
+
   actionHub: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 30
+    marginTop: 20 
   },
   actionBtn: {
     width: '31%',
