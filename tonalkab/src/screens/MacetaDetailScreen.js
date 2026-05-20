@@ -64,7 +64,9 @@ export default function MacetaDetailScreen({ route, navigation }) {
     );
   };
 
+  /*
   // --- NUEVA FUNCIÓN: RIEGO TEMPORIZADO CORTO (OPCIÓN B) ---
+  // COMENTADA TEMPORALMENTE
   const handleRegarCincoSegundos = async () => {
     Alert.alert(
       "Riego Corto ⏱️",
@@ -75,7 +77,6 @@ export default function MacetaDetailScreen({ route, navigation }) {
           text: "Sí, regar", 
           onPress: async () => {
             try {
-              // 🌟 Pasamos el parámetro 'segundos' al cuerpo de la petición
               const res = await apiClient.post(`/macetas/${id_maceta}/forzar-riego-edge`, { 
                 segundos: 5 
               });
@@ -91,6 +92,7 @@ export default function MacetaDetailScreen({ route, navigation }) {
       ]
     );
   };
+  */
 
   const StatBox = ({ icon, label, value, unit, color }) => (
     <View style={styles.statCard}>
@@ -177,7 +179,8 @@ export default function MacetaDetailScreen({ route, navigation }) {
             <Text style={styles.waterNowBtnText}>Forzar Riego Ahora</Text>
           </TouchableOpacity>
 
-          {/* --- 🌟 NUEVO BOTÓN: REGAR 5 SEGUNDOS --- */}
+          {/* --- 🌟 NUEVO BOTÓN: REGAR 5 SEGUNDOS (COMENTADO) --- */}
+          {/*
           <TouchableOpacity 
             style={[styles.waterNowBtn, { backgroundColor: '#2563EB', marginTop: 12 }]}
             onPress={handleRegarCincoSegundos}
@@ -185,6 +188,7 @@ export default function MacetaDetailScreen({ route, navigation }) {
             <Ionicons name="timer-outline" size={24} color="#FFFFFF" style={{ marginRight: 10 }} />
             <Text style={styles.waterNowBtnText}>Regar 5 Segundos</Text>
           </TouchableOpacity>
+          */}
 
           <View style={styles.actionHub}>
              <TouchableOpacity 

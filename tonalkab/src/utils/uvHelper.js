@@ -3,7 +3,7 @@
 /**
  * Convierte el valor crudo del ADC de 12 bits (0-4095) del ESP32 al Índice UV estándar
  * junto con su categoría de riesgo y color sugerido para la interfaz.
- * * @param {number|string} nivelLuz - Valor crudo devuelto por los sensores del hardware.
+ * @param {number|string} nivelLuz - Valor crudo devuelto por los sensores del hardware.
  * @returns {object} Objeto con el valor del índice, la categoría de riesgo y el color hex.
  */
 export function obtenerInfoUV(nivelLuz) {
@@ -18,8 +18,8 @@ export function obtenerInfoUV(nivelLuz) {
   // 1. Convertir el valor crudo a Voltaje real (Voltaje de referencia de 3.3V)
   const voltajeV = (valorCrudo / 4095.0) * 3.3;
 
-  // 2. Convertir el voltaje al Índice UV multiplicándolo por 10.0
-  const indiceUVNum = voltajeV * 10.0;
+  // 2. Convertir el voltaje al Índice UV aplicando la nueva fórmula: (voltaje / 3.3) * 11.0
+  const indiceUVNum = (voltajeV / 3.3) * 11.0;
   
   // Redondeamos estrictamente a 1 decimal para la consistencia visual de la UI
   const indiceUV = parseFloat(indiceUVNum.toFixed(1));
