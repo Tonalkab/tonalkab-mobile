@@ -35,37 +35,9 @@ export default function HomeScreen({ navigation }) {
   const fetchMacetas = async () => {
     setIsLoading(true);
     try {
-      // 1. Pedimos las macetas del usuario
-      const response = await apiClient.get('/macetas/');
-      const macetasData = response.data;
-
-      // 2. Pedimos el catálogo de plantas (aquí vienen los umbrales)
-      const plantasRes = await apiClient.get('/catalogos/plantas');
-      const catalogoPlantas = plantasRes.data;
-
-      const macetasConLecturas = await Promise.all(
-        macetasData.map(async (maceta) => {
-          
-          // 3. Buscamos la planta de esta maceta específica en el catálogo
-          const infoPlanta = catalogoPlantas.find(p => p.id_tipo_planta === maceta.id_tipo_planta);
-
-          let lectura = null;
-          try {
-            const lecturaRes = await apiClient.get(`/macetas/${maceta.id_maceta}/lecturas/actual`);
-            lectura = lecturaRes.data;
-          } catch (err) {
-            console.log("No hay lecturas para la maceta:", maceta.id_maceta);
-          }
-          
-          // 4. Retornamos la maceta, su lectura, ¡Y los datos de su planta incrustados!
-          return { 
-            ...maceta, 
-            lectura: lectura, 
-            tipo_planta: infoPlanta // <--- Ahora getUmbral lo va a encontrar aquí
-          };
-        })
-      );
-      setMacetas(macetasConLecturas);
+      // 🚀 Consumimos el endpoint agregado del dashboard en 1 solo viaje de red
+      const response = await apiClient.get('/macetas/dashboard');
+      setMacetas(response.data);
     } catch (error) {
       console.log("Error cargando el huerto:", error);
     } finally {

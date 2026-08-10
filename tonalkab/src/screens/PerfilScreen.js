@@ -1,9 +1,10 @@
 // src/screens/PerfilScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { 
   View, Text, StyleSheet, TouchableOpacity, 
   SafeAreaView, Alert, ScrollView, ActivityIndicator 
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -14,27 +15,29 @@ export default function PerfilScreen({ navigation }) {
   const [usuario, setUsuario] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Consulta de los datos del usuario en sesión
-  useEffect(() => {
-    const fetchPerfilUsuario = async () => {
+  // Consulta de los datos del usuario en sesión al enfocar la pantalla
+  const fetchPerfilUsuario = async () => {
+    try {
+      const res = await apiClient.get('/me');
+      setUsuario(res.data);
+    } catch (error) {
+      console.log("Error en /me, intentando endpoint alterno...", error);
       try {
-        const res = await apiClient.get('/users/me');
-        setUsuario(res.data);
-      } catch (error) {
-        console.log("Error en /users/me, reintentando endpoint /me...", error);
-        try {
-          const resAlt = await apiClient.get('/me');
-          setUsuario(resAlt.data);
-        } catch (err) {
-          console.error("No se pudo recuperar la información del perfil:", err);
-        }
-      } finally {
-        setIsLoading(false);
+        const resAlt = await apiClient.get('/users/me');
+        setUsuario(resAlt.data);
+      } catch (err) {
+        console.error("No se pudo recuperar la información del perfil:", err);
       }
-    };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    fetchPerfilUsuario();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchPerfilUsuario();
+    }, [])
+  );
 
   // Función para extraer las iniciales dinámicamente
   const obtenerIniciales = (nombreCompleto) => {
@@ -92,7 +95,7 @@ export default function PerfilScreen({ navigation }) {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         
-        {/* TARJETA DE USUARIO DINÁMICA */}
+        {/* TARJETA DE USUARIO DINÁMICA CON MONEDAS */}
         <View style={styles.userCard}>
           {isLoading ? (
             <View style={styles.loadingContainer}>
@@ -109,12 +112,40 @@ export default function PerfilScreen({ navigation }) {
               </View>
               
               <View style={styles.userInfo}>
-                <Text style={styles.userName}>{usuario?.nombre || "Usuario Tonalkab"}</Text>
+                <View style={styles.nameRow}>
+                  <Text style={styles.userName}>{usuario?.nombre || "Usuario Tonalkab"}</Text>
+                  {usuario?.es_admin && (
+                    <View style={styles.adminBadge}>
+                      <Text style={styles.adminBadgeText}>ADMIN</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.userEmail}>{usuario?.email || "sin_correo@tonalkab.com"}</Text>
+                
+                {/* Billetera de Monedas */}
+                <View style={styles.coinBalanceRow}>
+                  <Text style={styles.coinBalanceIcon}>🪙</Text>
+                  <Text style={styles.coinBalanceText}>{usuario?.monedas ?? 100} Monedas</Text>
+                </View>
               </View>
             </>
           )}
         </View>
+
+        {/* SECCIÓN EXCLUSIVA DE ADMINISTRADOR */}
+        {usuario?.es_admin && (
+          <>
+            <Text style={[styles.sectionTitle, { color: '#7C3AED' }]}>Administración</Text>
+            <View style={[styles.menuContainer, styles.adminMenuContainer]}>
+              <MenuOption 
+                icon="shield-checkmark" 
+                color="#7C3AED" 
+                title="⚙️ Panel de Gestión (Skins & Plantas)" 
+                onPress={() => navigation.navigate('AdminPanel')}
+              />
+            </View>
+          </>
+        )}
 
         <Text style={styles.sectionTitle}>Diagnóstico del Sistema</Text>
 
@@ -126,7 +157,7 @@ export default function PerfilScreen({ navigation }) {
             title="Estado del Servidor API" 
             onPress={() => Alert.alert(
               "Monitoreo de Red", 
-              "Conexión estable con FastAPI en api.tonalkab.com. Los webhooks de sensores están operando con normalidad."
+              "Conexión estable con FastAPI en api.tonalkab.com. Los webhooks de sensores y boutique operan con normalidad."
             )}
           />
         </View>
@@ -171,7 +202,7 @@ export default function PerfilScreen({ navigation }) {
           <Text style={styles.logoutText}>Cerrar Sesión</Text>
         </TouchableOpacity>
 
-        <Text style={styles.versionText}>Tonalkab App v1.0.0 (Build 26)</Text>
+        <Text style={styles.versionText}>Tonalkab App v1.1.0 • Plataforma Integral</Text>
       </ScrollView>
     </SafeAreaView>
   );
@@ -189,7 +220,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     padding: 20,
     borderRadius: 24,
-    marginBottom: 30,
+    marginBottom: 25,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#F1F5F9',
@@ -198,7 +229,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 15,
     elevation: 4,
-    minHeight: 105
+    minHeight: 110
   },
   loadingContainer: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
   loadingText: { fontSize: 14, color: '#64748B', fontWeight: '500' },
@@ -208,11 +239,19 @@ const styles = StyleSheet.create({
   onlineBadge: { position: 'absolute', bottom: -2, right: -2, width: 16, height: 16, borderRadius: 8, backgroundColor: '#22C55E', borderWidth: 3, borderColor: '#FFFFFF' },
   
   userInfo: { flex: 1 },
-  userName: { fontSize: 20, fontWeight: '800', color: '#0F172A', marginBottom: 2 },
-  userEmail: { fontSize: 13, color: '#64748B', fontWeight: '500' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  userName: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
+  adminBadge: { backgroundColor: '#EDE9FE', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: '#DDD6FE' },
+  adminBadgeText: { color: '#7C3AED', fontSize: 10, fontWeight: '900' },
+  userEmail: { fontSize: 12, color: '#64748B', fontWeight: '500', marginTop: 2 },
+  
+  coinBalanceRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, backgroundColor: '#FEF3C7', alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10, borderWidth: 1, borderColor: '#FDE68A' },
+  coinBalanceIcon: { fontSize: 12, marginRight: 4 },
+  coinBalanceText: { color: '#B45309', fontWeight: '800', fontSize: 12 },
 
   sectionTitle: { fontSize: 14, fontWeight: '800', color: '#94A3B8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 10, marginLeft: 5 },
   menuContainer: { backgroundColor: '#FFFFFF', borderRadius: 20, marginBottom: 25, borderWidth: 1, borderColor: '#F1F5F9', shadowColor: '#0F172A', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.02, shadowRadius: 10, elevation: 2 },
+  adminMenuContainer: { backgroundColor: '#FAF5FF', borderColor: '#E9D5FF', borderWidth: 1.5 },
   
   menuOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16 },
   menuOptionLeft: { flexDirection: 'row', alignItems: 'center' },

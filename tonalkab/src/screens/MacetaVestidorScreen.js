@@ -17,40 +17,55 @@ export default function MacetaVestidorScreen({ route, navigation }) {
 
   const [catalogo, setCatalogo] = useState([]);
   const [misSkins, setMisSkins] = useState([]);
+  const [saldoMonedas, setSaldoMonedas] = useState(0);
   const [skinEquipada, setSkinEquipada] = useState(skin_actual_id || 1); 
   const [skinPreview, setSkinPreview] = useState(null);
   
   const [isLoading, setIsLoading] = useState(true);
-  const [isEquipping, setIsEquipping] = useState(false);
+  const [isActionLoading, setIsActionLoading] = useState(false);
 
   const baseURL = apiClient.defaults.baseURL || 'https://api.tonalkab.com';
 
-  useEffect(() => {
-    const fetchDatosVestidor = async () => {
-      setIsLoading(true);
-      try {
-        const [catalogoRes, inventarioRes] = await Promise.all([
-          apiClient.get('/skins/'),
-          apiClient.get('/me/skins')
-        ]);
+  const fetchDatosVestidor = async () => {
+    try {
+      // Intentar obtener catálogo enriquecido de la tienda
+      const tiendaRes = await apiClient.get('/skins/tienda');
+      const { saldo_monedas, skins } = tiendaRes.data;
+      
+      setSaldoMonedas(saldo_monedas);
+      setCatalogo(skins);
+      
+      const misSkinsIds = skins.filter(s => s.desbloqueada).map(s => s.id);
+      setMisSkins(misSkinsIds);
 
-        const skinsDisponibles = catalogoRes.data;
-        setCatalogo(skinsDisponibles);
-        
+      const skinInicial = skins.find(s => s.id === skinEquipada) || skins[0];
+      if (skinInicial) setSkinPreview(skinInicial);
+
+    } catch (error) {
+      console.warn("Fallo /skins/tienda, usando fallback:", error);
+      // Fallback a endpoints clásicos
+      try {
+        const [catalogoRes, inventarioRes, meRes] = await Promise.all([
+          apiClient.get('/skins/'),
+          apiClient.get('/me/skins'),
+          apiClient.get('/me')
+        ]);
+        setCatalogo(catalogoRes.data);
+        setSaldoMonedas(meRes.data.monedas || 0);
         const misSkinsIds = inventarioRes.data.map(item => item.id_skin || item.id);
         setMisSkins(misSkinsIds);
-
-        const skinInicial = skinsDisponibles.find(s => s.id === skinEquipada);
+        const skinInicial = catalogoRes.data.find(s => s.id === skinEquipada) || catalogoRes.data[0];
         if (skinInicial) setSkinPreview(skinInicial);
-
-      } catch (error) {
-        console.error("Error cargando el vestidor:", error);
+      } catch (err) {
+        console.error("Error cargando el vestidor:", err);
         Alert.alert("Error", "No se pudo cargar la boutique de skins.");
-      } finally {
-        setIsLoading(false);
       }
-    };
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchDatosVestidor();
   }, [skinEquipada]);
 
@@ -62,7 +77,7 @@ export default function MacetaVestidorScreen({ route, navigation }) {
       return;
     }
 
-    setIsEquipping(true);
+    setIsActionLoading(true);
     try {
       await apiClient.post(`/macetas/${id_maceta}/skins/${skinPreview.id}/equipar`);
       setSkinEquipada(skinPreview.id);
@@ -71,17 +86,47 @@ export default function MacetaVestidorScreen({ route, navigation }) {
       console.error(error);
       Alert.alert("Error", "Hubo un problema al aplicar el estilo.");
     } finally {
-      setIsEquipping(false);
+      setIsActionLoading(false);
+    }
+  };
+
+  const handleComprarODesbloquear = async () => {
+    if (!skinPreview) return;
+    const precio = skinPreview.precio_monedas || 0;
+
+    if (precio > 0 && saldoMonedas < precio) {
+      Alert.alert(
+        "Monedas Insuficientes",
+        `Esta skin cuesta ${precio} monedas y actualmente tienes 🪙 ${saldoMonedas}.\n\n¡Sigue cuidando tus macetas para ganar más monedas!`
+      );
+      return;
+    }
+
+    setIsActionLoading(true);
+    try {
+      const res = await apiClient.post(`/skins/${skinPreview.id}/comprar`);
+      const nuevoSaldo = res.data.saldo_monedas ?? (saldoMonedas - precio);
+      
+      setSaldoMonedas(nuevoSaldo);
+      setMisSkins(prev => [...prev, skinPreview.id]);
+
+      Alert.alert(
+        "¡Adquisición Exitosa!",
+        res.data.message || `Has desbloqueado '${skinPreview.nombre}'. ¡Ya puedes equiparla!`
+      );
+    } catch (error) {
+      const msg = error.response?.data?.detail || "No se pudo completar la compra.";
+      Alert.alert("Error", msg);
+    } finally {
+      setIsActionLoading(false);
     }
   };
 
   const handleGoBack = () => {
     const skinActivaObj = catalogo.find(s => s.id === skinEquipada);
-    
     if (onSkinChange && skinActivaObj) {
       onSkinChange(skinEquipada, skinActivaObj.imagen_url);
     }
-    
     navigation.goBack();
   };
 
@@ -89,7 +134,9 @@ export default function MacetaVestidorScreen({ route, navigation }) {
     const isUnlocked = misSkins.includes(item.id);
     const isEquipped = item.id === skinEquipada;
     const isSelected = skinPreview?.id === item.id;
-    const imageUrl = `${baseURL}${item.imagen_url}`;
+    const imageUrl = item.imagen_url?.startsWith('http') 
+      ? item.imagen_url 
+      : `${baseURL}${item.imagen_url}`;
 
     return (
       <TouchableOpacity 
@@ -103,7 +150,7 @@ export default function MacetaVestidorScreen({ route, navigation }) {
       >
         <Image 
           source={{ uri: imageUrl }} 
-          style={[styles.skinThumbnail, !isUnlocked && { opacity: 0.25, tintColor: 'gray' }]} 
+          style={[styles.skinThumbnail, !isUnlocked && { opacity: 0.4 }]} 
           resizeMode="contain"
         />
         
@@ -112,9 +159,14 @@ export default function MacetaVestidorScreen({ route, navigation }) {
             <Ionicons name="checkmark-sharp" size={12} color="#FFF" />
           </View>
         )}
+        
         {!isUnlocked && (
           <View style={[styles.badge, styles.badgeLocked]}>
-            <Ionicons name="lock-closed" size={12} color="#FFF" />
+            {item.precio_monedas > 0 ? (
+              <Text style={styles.badgePriceText}>🪙</Text>
+            ) : (
+              <Ionicons name="gift-outline" size={12} color="#FFF" />
+            )}
           </View>
         )}
       </TouchableOpacity>
@@ -130,28 +182,43 @@ export default function MacetaVestidorScreen({ route, navigation }) {
     );
   }
 
+  const isUnlocked = misSkins.includes(skinPreview?.id);
+  const isEquipped = skinEquipada === skinPreview?.id;
+  const precio = skinPreview?.precio_monedas || 0;
+  const previewImgUrl = skinPreview?.imagen_url?.startsWith('http')
+    ? skinPreview.imagen_url
+    : `${baseURL}${skinPreview?.imagen_url}`;
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
       <LinearGradient colors={["#FFFFFF", "#F8FAFC", "#F1F5F9"]} style={StyleSheet.absoluteFill} />
 
+      {/* Header */}
       <View style={styles.headerRow}>
         <TouchableOpacity style={styles.backBtn} onPress={handleGoBack}>
           <Ionicons name="chevron-back" size={24} color="#0F172A" />
         </TouchableOpacity>
+        
         <View style={styles.headerTitleBox}>
           <Text style={styles.headerTitle}>Boutique Tonalkab</Text>
-          <Text style={styles.headerSubtitle}>{nombre_maceta}</Text>
+          <Text style={styles.headerSubtitle}>{nombre_maceta || "Personaliza tu maceta"}</Text>
         </View>
-        <View style={{ width: 40 }} />
+
+        {/* Saldo de Monedas */}
+        <View style={styles.coinBadge}>
+          <Text style={styles.coinIcon}>🪙</Text>
+          <Text style={styles.coinText}>{saldoMonedas}</Text>
+        </View>
       </View>
 
+      {/* Vitrina de exhibición */}
       <View style={styles.vitrinaContainer}>
         <View style={styles.auraGlow} />
         
         {skinPreview ? (
           <Image 
-            source={{ uri: `${baseURL}${skinPreview.imagen_url}` }} 
+            source={{ uri: previewImgUrl }} 
             style={styles.vitrinaImage}
             resizeMode="contain"
           />
@@ -161,36 +228,51 @@ export default function MacetaVestidorScreen({ route, navigation }) {
 
         <View style={styles.infoBox}>
           <Text style={styles.skinName}>{skinPreview?.nombre || "Cargando..."}</Text>
-          <Text style={styles.skinDesc} numberOfLines={2}>{skinPreview?.descripcion || ""}</Text>
+          <Text style={styles.skinDesc} numberOfLines={2}>{skinPreview?.descripcion || "Diseño exclusivo de Tonalkab."}</Text>
           
-          <TouchableOpacity 
-            style={[
-              styles.actionBtn, 
-              skinEquipada === skinPreview?.id ? styles.actionBtnDisabled : styles.actionBtnActive,
-              !misSkins.includes(skinPreview?.id) && styles.actionBtnLocked
-            ]}
-            disabled={skinEquipada === skinPreview?.id || isEquipping || !misSkins.includes(skinPreview?.id)}
-            onPress={handleEquipar}
-          >
-            {isEquipping ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.actionBtnText}>
-                {!misSkins.includes(skinPreview?.id) 
-                  ? "Bloqueado" 
-                  : skinEquipada === skinPreview?.id 
-                    ? "En Uso" 
-                    : "Aplicar Estilo"}
-              </Text>
-            )}
-          </TouchableOpacity>
+          {/* BOTÓN DINÁMICO: Equipar / Reclamar Gratis / Comprar con Monedas */}
+          {isUnlocked ? (
+            <TouchableOpacity 
+              style={[
+                styles.actionBtn, 
+                isEquipped ? styles.actionBtnDisabled : styles.actionBtnActive
+              ]}
+              disabled={isEquipped || isActionLoading}
+              onPress={handleEquipar}
+            >
+              {isActionLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.actionBtnText}>
+                  {isEquipped ? "✓ En Uso" : "Aplicar Estilo"}
+                </Text>
+              )}
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity 
+              style={[styles.actionBtn, styles.actionBtnBuy]}
+              disabled={isActionLoading}
+              onPress={handleComprarODesbloquear}
+            >
+              {isActionLoading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.actionBtnText}>
+                  {precio === 0 
+                    ? "🎁 Reclamar Gratis" 
+                    : `🪙 Comprar por ${precio} Monedas`}
+                </Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </View>
 
+      {/* Catálogo / Colección */}
       <View style={styles.inventoryContainer}>
         <View style={styles.inventoryHeader}>
-          <Text style={styles.sectionTitle}>Tu Colección</Text>
-          <Text style={styles.collectionCount}>{misSkins.length} / {catalogo.length}</Text>
+          <Text style={styles.sectionTitle}>Colección & Tienda</Text>
+          <Text style={styles.collectionCount}>{misSkins.length} / {catalogo.length} Desbloqueadas</Text>
         </View>
         
         <FlatList
@@ -200,7 +282,7 @@ export default function MacetaVestidorScreen({ route, navigation }) {
           showsVerticalScrollIndicator={false}
           renderItem={renderSkinItem}
           columnWrapperStyle={styles.row}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingBottom: 30 }}
         />
       </View>
     </SafeAreaView>
@@ -217,20 +299,38 @@ const styles = StyleSheet.create({
     alignItems: 'center', 
     justifyContent: 'space-between', 
     paddingHorizontal: 20, 
-    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight + 5 : 5, 
-    paddingBottom: 10 // 🌟 Margen reducido
+    paddingTop: Platform.OS === 'android' ? RNStatusBar.currentHeight + 8 : 8, 
+    paddingBottom: 10
   },
   backBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#FFFFFF', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 5, elevation: 2 },
   headerTitleBox: { alignItems: 'center' },
   headerTitle: { fontSize: 18, fontWeight: '800', color: '#0F172A' },
   headerSubtitle: { fontSize: 12, fontWeight: '600', color: '#22C55E' },
 
+  coinBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2
+  },
+  coinIcon: { fontSize: 14, marginRight: 4 },
+  coinText: { color: '#B45309', fontWeight: '800', fontSize: 14 },
+
   vitrinaContainer: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 20,
-    borderRadius: 25, // 🌟 Radio más suave
-    paddingTop: 15, // 🌟 Relleno superior reducido
-    paddingBottom: 15, // 🌟 Relleno inferior reducido
+    borderRadius: 25,
+    paddingTop: 15,
+    paddingBottom: 15,
     paddingHorizontal: 20,
     alignItems: 'center',
     shadowColor: '#0F172A',
@@ -240,27 +340,27 @@ const styles = StyleSheet.create({
     elevation: 8,
     borderWidth: 1,
     borderColor: '#F1F5F9',
-    marginBottom: 15 // 🌟 Margen inferior reducido drásticamente
+    marginBottom: 15
   },
   auraGlow: {
     position: 'absolute',
-    top: 30, // 🌟 Aura ajustada a la nueva imagen
+    top: 25,
     width: 140,
     height: 140,
     backgroundColor: 'rgba(34, 197, 94, 0.10)',
     borderRadius: 70
   },
-  vitrinaImage: { width: 160, height: 160, marginBottom: 10 }, // 🌟 Imagen más compacta
+  vitrinaImage: { width: 160, height: 160, marginBottom: 10 },
   placeholderImage: { width: 160, height: 160, backgroundColor: '#F8FAFC', borderRadius: 80, marginBottom: 10 },
   
   infoBox: { width: '100%', alignItems: 'center' },
   skinName: { color: '#0F172A', fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
-  skinDesc: { color: '#64748B', fontSize: 13, textAlign: 'center', marginTop: 4, marginBottom: 12, paddingHorizontal: 10, fontWeight: '500', lineHeight: 18 }, // 🌟 Márgenes de texto reducidos
+  skinDesc: { color: '#64748B', fontSize: 13, textAlign: 'center', marginTop: 4, marginBottom: 12, paddingHorizontal: 10, fontWeight: '500', lineHeight: 18 },
   
-  actionBtn: { width: '90%', paddingVertical: 14, borderRadius: 16, alignItems: 'center', elevation: 2 }, // 🌟 Botón un poco más delgado
+  actionBtn: { width: '90%', paddingVertical: 14, borderRadius: 16, alignItems: 'center', elevation: 2 },
   actionBtnActive: { backgroundColor: '#22C55E', shadowColor: '#22C55E', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12 },
+  actionBtnBuy: { backgroundColor: '#D97706', shadowColor: '#D97706', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 12 },
   actionBtnDisabled: { backgroundColor: '#E2E8F0', shadowColor: 'transparent', elevation: 0 },
-  actionBtnLocked: { backgroundColor: '#F1F5F9', borderWidth: 1, borderColor: '#E2E8F0', elevation: 0, shadowColor: 'transparent' },
   actionBtnText: { color: '#FFFFFF', fontWeight: '800', fontSize: 15, letterSpacing: 0.5 },
 
   inventoryContainer: { flex: 1, paddingHorizontal: 20 },
@@ -293,5 +393,6 @@ const styles = StyleSheet.create({
   
   badge: { position: 'absolute', top: -6, right: -6, width: 24, height: 24, borderRadius: 12, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: '#FFF', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 3, elevation: 4 },
   badgeEquipped: { backgroundColor: '#22C55E' },
-  badgeLocked: { backgroundColor: '#94A3B8' }
+  badgeLocked: { backgroundColor: '#D97706' },
+  badgePriceText: { fontSize: 10 }
 });

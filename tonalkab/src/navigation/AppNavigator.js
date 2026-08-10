@@ -17,6 +17,7 @@ import AlertasScreen from '../screens/AlertasScreen';
 import PerfilScreen from '../screens/PerfilScreen';
 import MacetaVestidorScreen from '../screens/MacetaVestidorScreen';
 import PlantaDetailScreen from '../screens/PlantaDetailScreen';
+import AdminPanelScreen from '../screens/AdminPanelScreen';
 
 // --- NUEVA PANTALLA ---
 import TonalliScreen from '../screens/TonalliScreen';
@@ -126,6 +127,11 @@ export default function AppNavigator() {
         <Stack.Screen 
           name="PlantaDetail" 
           component={PlantaDetailScreen} 
+          options={{ headerShown: false }} 
+        />
+        <Stack.Screen 
+          name="AdminPanel" 
+          component={AdminPanelScreen} 
           options={{ headerShown: false }} 
         />
 
