@@ -130,6 +130,26 @@ export default function MacetaVestidorScreen({ route, navigation }) {
     navigation.goBack();
   };
 
+  const getCategoryStyles = (categoria, isSelected, isUnlocked) => {
+    if (!isUnlocked) return styles.skinCardLocked;
+    
+    if (!isSelected) {
+      switch (categoria) {
+        case 'legendaria': return { borderColor: '#E9D5FF', backgroundColor: '#FAF5FF' }; // Light Purple
+        case 'rara': return { borderColor: '#FFEDD5', backgroundColor: '#FFF7ED' };       // Light Orange
+        case 'comun':
+        default: return {}; 
+      }
+    } else {
+      switch (categoria) {
+        case 'legendaria': return { borderColor: '#A855F7', backgroundColor: '#FAF5FF', borderWidth: 2 }; 
+        case 'rara': return { borderColor: '#F97316', backgroundColor: '#FFF7ED', borderWidth: 2 };       
+        case 'comun':
+        default: return styles.skinCardSelected;           
+      }
+    }
+  };
+
   const renderSkinItem = ({ item }) => {
     const isUnlocked = misSkins.includes(item.id);
     const isEquipped = item.id === skinEquipada;
@@ -142,8 +162,7 @@ export default function MacetaVestidorScreen({ route, navigation }) {
       <TouchableOpacity 
         style={[
           styles.skinCard, 
-          isSelected && styles.skinCardSelected,
-          !isUnlocked && styles.skinCardLocked
+          getCategoryStyles(item.categoria, isSelected, isUnlocked)
         ]}
         onPress={() => setSkinPreview(item)}
         activeOpacity={0.7}
@@ -189,6 +208,24 @@ export default function MacetaVestidorScreen({ route, navigation }) {
     ? skinPreview.imagen_url
     : `${baseURL}${skinPreview?.imagen_url}`;
 
+  const getAuraColor = (categoria) => {
+    switch (categoria) {
+      case 'legendaria': return 'rgba(168, 85, 247, 0.15)'; 
+      case 'rara': return 'rgba(249, 115, 22, 0.15)';
+      case 'comun':
+      default: return 'rgba(34, 197, 94, 0.10)';
+    }
+  };
+
+  const getCategoryTextColor = (categoria) => {
+    switch (categoria) {
+      case 'legendaria': return '#9333EA'; 
+      case 'rara': return '#EA580C';       
+      case 'comun':
+      default: return '#64748B';           
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="dark" />
@@ -214,7 +251,7 @@ export default function MacetaVestidorScreen({ route, navigation }) {
 
       {/* Vitrina de exhibición */}
       <View style={styles.vitrinaContainer}>
-        <View style={styles.auraGlow} />
+        <View style={[styles.auraGlow, { backgroundColor: getAuraColor(skinPreview?.categoria) }]} />
         
         {skinPreview ? (
           <Image 
@@ -228,6 +265,9 @@ export default function MacetaVestidorScreen({ route, navigation }) {
 
         <View style={styles.infoBox}>
           <Text style={styles.skinName}>{skinPreview?.nombre || "Cargando..."}</Text>
+          <Text style={[styles.skinCategoryTag, { color: getCategoryTextColor(skinPreview?.categoria) }]}>
+            {skinPreview?.categoria ? skinPreview.categoria.toUpperCase() : 'COMÚN'}
+          </Text>
           <Text style={styles.skinDesc} numberOfLines={2}>{skinPreview?.descripcion || "Diseño exclusivo de Tonalkab."}</Text>
           
           {/* BOTÓN DINÁMICO: Equipar / Reclamar Gratis / Comprar con Monedas */}
@@ -355,6 +395,7 @@ const styles = StyleSheet.create({
   
   infoBox: { width: '100%', alignItems: 'center' },
   skinName: { color: '#0F172A', fontSize: 20, fontWeight: '900', letterSpacing: -0.5 },
+  skinCategoryTag: { fontSize: 11, fontWeight: '800', marginTop: 2, letterSpacing: 1 },
   skinDesc: { color: '#64748B', fontSize: 13, textAlign: 'center', marginTop: 4, marginBottom: 12, paddingHorizontal: 10, fontWeight: '500', lineHeight: 18 },
   
   actionBtn: { width: '90%', paddingVertical: 14, borderRadius: 16, alignItems: 'center', elevation: 2 },
